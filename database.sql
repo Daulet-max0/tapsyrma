@@ -153,15 +153,15 @@ SELECT
     t."PhotoPath",
     t."TotalScore",
     (SELECT COUNT(*) FROM "Achievements" a
-     WHERE a."TeacherId" = t."TeacherId" AND a."IsApproved" = TRUE) AS "ApprovedCount",
+     WHERE a."TeacherId" = t."TeacherId" AND a."IsApproved" = TRUE) AS ApprovedCount,
     (SELECT COUNT(*) FROM "Achievements" a
-     WHERE a."TeacherId" = t."TeacherId" AND a."IsApproved" = FALSE AND a."IsRejected" = FALSE) AS "PendingCount",
+     WHERE a."TeacherId" = t."TeacherId" AND a."IsApproved" = FALSE AND a."IsRejected" = FALSE) AS PendingCount,
     (SELECT COUNT(*) FROM "Achievements" a
-     WHERE a."TeacherId" = t."TeacherId" AND a."IsRejected" = TRUE) AS "RejectedCount",
+     WHERE a."TeacherId" = t."TeacherId" AND a."IsRejected" = TRUE) AS RejectedCount,
     COALESCE((SELECT AVG("Stars"::numeric) FROM "Reviews" r
-            WHERE r."TeacherId" = t."TeacherId"), 0) AS "AvgRating",
-    (SELECT COUNT(*) FROM "Reviews" r WHERE r."TeacherId" = t."TeacherId") AS "ReviewsCount",
-    DENSE_RANK() OVER (ORDER BY t."TotalScore" DESC) AS "RankPosition"
+            WHERE r."TeacherId" = t."TeacherId"), 0) AS AvgRating,
+    (SELECT COUNT(*) FROM "Reviews" r WHERE r."TeacherId" = t."TeacherId") AS ReviewsCount,
+    DENSE_RANK() OVER (ORDER BY t."TotalScore" DESC) AS RankPosition
 FROM "Teachers" t;
 
 -- BATCH

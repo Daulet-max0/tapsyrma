@@ -23,19 +23,24 @@ _IDENTIFIERS = sorted(
         "Stars", "Score", "Action", "Details", "UserType", "Icon", "Color",
         "ApprovedCount", "PendingCount", "RejectedCount", "AvgRating",
         "ReviewsCount", "RankPosition", "ReviewerName", "ReviewerPhoto",
-        "TypeScore", "TeachersCount", "ApprovedCount", "PendingCount",
-        "MaxScore", "SumScore", "AvgScore", "TotalTeachers", "TotalAch",
+        "TypeScore", "TeachersCount", "MaxScore", "SumScore", "AvgScore",
+        "TotalTeachers", "TotalAch",
     ],
     key=len,
     reverse=True,
 )
 
+_KEY_MAP = {name.lower(): name for name in _IDENTIFIERS}
+
 
 def _prepare_query(query: str) -> str:
+    """? → %s; кесте/баған атауларын quote (alias AS ішінде емес)."""
     q = re.sub(r"\?", "%s", query)
-    for name in _IDENTIFIERS:
-        q = re.sub(rf"\b{re.escape(name)}\b", f'"{name}"', q)
-    return q
+    parts = re.split(r'("(?:[^"\\]|\\.)*")', q)
+    for i in range(0, len(parts), 2):
+        for name in _IDENTIFIERS:
+            parts[i] = re.sub(rf"\b{re.escape(name)}\b", f'"{name}"', parts[i])
+    return "".join(parts)
 
 
 def get_connection():
@@ -61,8 +66,10 @@ def row_to_dict(cursor, row) -> dict:
     if row is None:
         return None
     if isinstance(row, dict):
-        return dict(row)
-    return {col[0]: value for col, value in zip(cursor.description, row)}
+        raw = dict(row)
+    else:
+        raw = {col[0]: value for col, value in zip(cursor.description, row)}
+    return {_KEY_MAP.get(str(k).lower(), k): v for k, v in raw.items()}
 
 
 def rows_to_dicts(cursor, rows) -> list:
