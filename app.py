@@ -182,8 +182,8 @@ def index():
     stats = db.fetch_one("""
         SELECT
             (SELECT COUNT(*) FROM Teachers) AS TeachersCount,
-            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = 1) AS ApprovedCount,
-            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = 0 AND IsRejected = 0) AS PendingCount,
+            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = TRUE) AS ApprovedCount,
+            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = FALSE AND IsRejected = FALSE) AS PendingCount,
             (SELECT COALESCE(MAX(TotalScore), 0) FROM Teachers) AS MaxScore
     """)
 
@@ -203,7 +203,7 @@ def teacher_profile_public(teacher_id: int):
         SELECT a.*, at.TypeName, at.Category
         FROM Achievements a
         INNER JOIN AchievementTypes at ON a.TypeId = at.TypeId
-        WHERE a.TeacherId = ? AND a.IsApproved = 1
+        WHERE a.TeacherId = ? AND a.IsApproved = TRUE
         ORDER BY a.ApprovedAt DESC
     """, (teacher_id,))
 
@@ -430,7 +430,7 @@ def add_achievement():
 
     db.execute("""
         INSERT INTO Achievements (TeacherId, TypeId, Title, Description, ImagePath, IsApproved)
-        VALUES (?, ?, ?, ?, ?, 0)
+        VALUES (?, ?, ?, ?, ?, FALSE)
     """, (teacher_id, type_id, title, description, image_path))
 
     log_audit("teacher", teacher_id, "achievement_submit", title)
@@ -443,7 +443,7 @@ def add_achievement():
 def delete_own_achievement(achievement_id: int):
     teacher_id = session["user_id"]
     db.execute(
-        "DELETE FROM Achievements WHERE AchievementId = ? AND TeacherId = ? AND IsApproved = 0",
+        "DELETE FROM Achievements WHERE AchievementId = ? AND TeacherId = ? AND IsApproved = FALSE",
         (achievement_id, teacher_id)
     )
     flash("Жетістік өшірілді", "success")
@@ -477,7 +477,7 @@ def admin_panel():
         FROM Achievements a
         INNER JOIN AchievementTypes at ON a.TypeId = at.TypeId
         INNER JOIN Teachers t ON a.TeacherId = t.TeacherId
-        WHERE a.IsApproved = 0 AND a.IsRejected = 0
+        WHERE a.IsApproved = FALSE AND a.IsRejected = FALSE
         ORDER BY a.SubmittedAt DESC
     """)
 
@@ -486,7 +486,7 @@ def admin_panel():
         FROM Achievements a
         INNER JOIN AchievementTypes at ON a.TypeId = at.TypeId
         INNER JOIN Teachers t ON a.TeacherId = t.TeacherId
-        WHERE a.IsApproved = 1 OR a.IsRejected = 1
+        WHERE a.IsApproved = TRUE OR a.IsRejected = TRUE
         ORDER BY COALESCE(a.ApprovedAt, a.SubmittedAt) DESC
         LIMIT 20
     """)
@@ -495,8 +495,8 @@ def admin_panel():
         SELECT
             (SELECT COUNT(*) FROM Teachers) AS TeachersCount,
             (SELECT COUNT(*) FROM Achievements) AS TotalAch,
-            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = 1) AS ApprovedCount,
-            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = 0 AND IsRejected = 0) AS PendingCount
+            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = TRUE) AS ApprovedCount,
+            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = FALSE AND IsRejected = FALSE) AS PendingCount
     """)
     return render_template("admin.html", pending=pending, recent=recent, stats=stats)
 
@@ -602,7 +602,7 @@ def results_page():
         FROM Achievements a
         INNER JOIN AchievementTypes at ON a.TypeId = at.TypeId
         INNER JOIN Teachers t          ON a.TeacherId = t.TeacherId
-        WHERE a.IsApproved = 1
+        WHERE a.IsApproved = TRUE
         GROUP BY t.TeacherId, at.Category
         ORDER BY t.TeacherId, CategoryScore DESC
     """)
@@ -705,8 +705,8 @@ def api_dashboard():
     counters = db.fetch_one("""
         SELECT
             (SELECT COUNT(*) FROM Teachers) AS TeachersCount,
-            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = 1) AS ApprovedCount,
-            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = 0 AND IsRejected = 0) AS PendingCount,
+            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = TRUE) AS ApprovedCount,
+            (SELECT COUNT(*) FROM Achievements WHERE IsApproved = FALSE AND IsRejected = FALSE) AS PendingCount,
             (SELECT COALESCE(MAX(TotalScore), 0) FROM Teachers) AS MaxScore
     """)
 
@@ -720,7 +720,7 @@ def api_dashboard():
         SELECT at.Category, COUNT(*) AS Cnt
         FROM Achievements a
         INNER JOIN AchievementTypes at ON a.TypeId = at.TypeId
-        WHERE a.IsApproved = 1
+        WHERE a.IsApproved = TRUE
         GROUP BY at.Category
         ORDER BY Cnt DESC
     """)
