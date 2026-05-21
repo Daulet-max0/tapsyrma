@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Кіру — Оқытушылар рейтингі{% endblock %}
+
+{% block content %}
+<script>document.body.dataset.titleKey='title.login';</script>
+<div class="login-container">
+    <div class="login-box">
+        <div class="login-logo">
+            <div class="logo-icon">P</div>
+            <h1 data-i18n="login.title">Жүйеге кіру</h1>
+            <p class="subtitle" data-i18n="login.subtitle">Жеке кабинетке кіру үшін деректерді енгізіңіз</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login_submit') }}" id="loginForm">
+            <div class="role-switcher">
+                <input type="radio" name="role" id="roleTeacher" value="teacher" checked>
+                <label for="roleTeacher"><i class="fa-solid fa-chalkboard-user"></i> <span data-i18n="login.teacher">Оқытушы</span></label>
+                <input type="radio" name="role" id="roleAdmin" value="admin">
+                <label for="roleAdmin"><i class="fa-solid fa-shield-halved"></i> <span data-i18n="login.admin">Админ</span></label>
+            </div>
+
+            <div class="form-group">
+                <label for="email" data-i18n="login.email">Email</label>
+                <input type="email" id="email" name="email" class="input-field"
+                       placeholder="example@college.kz" required autofocus
+                       autocomplete="email"
+                       data-i18n-placeholder="login.emailPlaceholder">
+            </div>
+
+            <div class="form-group">
+                <label for="password" data-i18n="login.password">Құпия сөз</label>
+                <input type="password" id="password" name="password" class="input-field"
+                       placeholder="••••••••" required autocomplete="current-password"
+                       data-i18n-placeholder="login.passwordPlaceholder">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span data-i18n="login.submit">Кіру</span>
+            </button>
+
+            <div class="login-footer">
+                <span data-i18n="login.noAccount">Аккаунтыңыз жоқ па?</span>
+                <a href="{{ url_for('register_page') }}" class="register-link">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span data-i18n="login.registerLink">Тіркелу</span>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

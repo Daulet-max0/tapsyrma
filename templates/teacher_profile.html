@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ teacher.FullName }} — Профиль{% endblock %}
+
+{% block content %}
+<script>document.body.dataset.titleKey='title.teacherProfile';</script>
+<div class="container">
+
+    <div class="profile-header">
+        <div class="avatar-wrapper">
+            <div class="avatar-ring"></div>
+            <div class="avatar-ring-2"></div>
+            <img src="{{ url_for('static', filename=teacher.PhotoPath) if teacher.PhotoPath else 'https://ui-avatars.com/api/?name=' ~ teacher.FullName ~ '&background=1a1a1a&color=d4ff00&size=320' }}"
+                 alt="{{ teacher.FullName }}" class="avatar-img">
+        </div>
+
+        <div class="profile-info">
+            <h1>{{ teacher.FullName }}</h1>
+            <div class="meta">
+                <i class="fa-solid fa-building-columns"></i> {{ teacher.Department or '—' }}
+                {% if teacher.Position %} · <i class="fa-solid fa-briefcase"></i> {{ teacher.Position }}{% endif %}
+            </div>
+
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <div class="val" data-counter="{{ teacher.TotalScore }}">0</div>
+                    <div class="lbl" data-i18n="teacher.totalScore">Жалпы ұпай</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="val" data-counter="{{ teacher.ApprovedCount }}">0</div>
+                    <div class="lbl" data-i18n="teacher.achievements">Жетістіктер</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="val">#{{ teacher.RankPosition }}</div>
+                    <div class="lbl" data-i18n="teacher.rank">Рейтингі</div>
+                </div>
+                {% if teacher.AvgRating > 0 %}
+                <div class="profile-stat">
+                    <div class="val" style="color: #d4ff00;">{{ "%.1f"|format(teacher.AvgRating) }} <i class="fa-solid fa-star" style="font-size: 18px;"></i></div>
+                    <div class="lbl" data-i18n="teacher.avgRating">Орташа баға</div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if badges %}
+            <div class="badges-row">
+                {% for b in badges %}
+                <span class="badge-pill" style="border-color: {{ b.Color }}; color: {{ b.Color }};">
+                    <span class="icon">{{ b.Icon }}</span> {{ b.BadgeName }}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if next_badge %}
+            <div class="progress-wrap">
+                <div class="labels">
+                    <span><span data-i18n="teacher.nextLevel">Келесі деңгей:</span> <strong>{{ next_badge.Icon }} {{ next_badge.BadgeName }}</strong></span>
+                    <span>{{ teacher.TotalScore }} / {{ next_badge.MinScore }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" data-width="{{ (teacher.TotalScore / next_badge.MinScore * 100) | round(0, 'floor') }}"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="panel">
+            <h2><span class="icon-box">🏅</span> <span data-i18n="teacher.achTitle">Жетістіктер</span> ({{ achievements|length }})</h2>
+            {% if achievements %}
+                <div class="achievement-list">
+                    {% for a in achievements %}
+                    <div class="ach-item" onclick="openImage('{{ url_for('static', filename=a.ImagePath) if a.ImagePath else '' }}')"
+                         style="{% if a.ImagePath %}cursor:pointer;{% endif %}">
+                        <div class="ach-thumb">
+                            {% if a.ImagePath %}
+                                <img src="{{ url_for('static', filename=a.ImagePath) }}" alt="">
+                            {% else %}
+                                🏅
+                            {% endif %}
+                        </div>
+                        <div class="ach-info">
+                            <div class="ach-title">{{ a.Title }}</div>
+                            <div class="ach-meta">
+                                <span><i class="fa-solid fa-tag"></i> {{ a.TypeName }}</span>
+                                <span><i class="fa-regular fa-calendar"></i> {{ a.ApprovedAt.strftime('%Y-%m-%d') if a.ApprovedAt else '' }}</span>
+                            </div>
+                        </div>
+                        <div class="score-badge" style="margin-top: 0;">+{{ a.Score }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="icon">📋</div>
+                    <h3 data-i18n="teacher.achEmpty">Жетістіктер жоқ</h3>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="panel">
+            <h2><span class="icon-box">💬</span> <span data-i18n="teacher.reviewsTitle">Пікірлер</span> ({{ reviews|length }})</h2>
+
+            {% if current_user.role == 'teacher' and current_user.id != teacher.TeacherId %}
+            <form method="POST" action="{{ url_for('add_review', teacher_id=teacher.TeacherId) }}" class="mb-2" id="reviewForm">
+                <div class="form-group">
+                    <label data-i18n="teacher.yourRating">Бағаңыз</label>
+                    <div class="stars" id="starRating">
+                        {% for i in range(1, 6) %}
+                        <span class="star" data-value="{{ i }}">★</span>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="stars" id="starsInput" value="5">
+                </div>
+                <div class="form-group">
+                    <textarea name="comment" class="textarea-field" placeholder="Пікіріңіз..." data-i18n-placeholder="teacher.commentPlaceholder"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> <span data-i18n="teacher.submitReview">Жіберу</span></button>
+            </form>
+            {% endif %}
+
+            {% if reviews %}
+                <div class="achievement-list">
+                    {% for r in reviews %}
+                    <div class="ach-item">
+                        <img src="{{ url_for('static', filename=r.ReviewerPhoto) if r.ReviewerPhoto else 'https://ui-avatars.com/api/?name=' ~ r.ReviewerName ~ '&background=4fc3f7&color=fff' }}"
+                             class="approval-avatar" alt="">
+                        <div class="ach-info">
+                            <div class="ach-title">{{ r.ReviewerName }}</div>
+                            <div class="stars readonly mb-1">
+                                {% for i in range(1, 6) %}
+                                    <span class="star {% if i <= r.Stars %}filled{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            {% if r.Comment %}
+                            <div style="font-size: 14px; color: var(--text-secondary);">{{ r.Comment }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">
+                            {{ r.CreatedAt.strftime('%Y-%m-%d') if r.CreatedAt else '' }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="icon">💬</div>
+                    <h3 data-i18n="teacher.noReviews">Пікірлер жоқ</h3>
+                    {% if current_user.role == 'teacher' and current_user.id != teacher.TeacherId %}
+                    <p data-i18n="teacher.beFirst">Бірінші болып пікір қалдырыңыз!</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div class="modal-backdrop" id="imageLightbox" onclick="this.classList.remove('open')">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 data-i18n="teacher.document">Құжат</h3>
+            <button class="modal-close" onclick="document.getElementById('imageLightbox').classList.remove('open')">×</button>
+        </div>
+        <img src="" class="lightbox-img" id="lightboxImg">
+    </div>
+</div>
+
+<script>
+function openImage(path) {
+    if (!path) return;
+    document.getElementById('lightboxImg').src = path;
+    document.getElementById('imageLightbox').classList.add('open');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            const w = bar.getAttribute('data-width');
+            bar.style.width = (w > 100 ? 100 : w) + '%';
+        });
+    }, 300);
+
+    // Star rating
+    const stars = document.querySelectorAll('#starRating .star');
+    const input = document.getElementById('starsInput');
+    function setStars(value) {
+        stars.forEach((s, i) => s.classList.toggle('filled', i < value));
+        if (input) input.value = value;
+    }
+    if (input) setStars(5);
+    stars.forEach(s => {
+        s.addEventListener('click', () => setStars(parseInt(s.dataset.value)));
+        s.addEventListener('mouseenter', () => {
+            stars.forEach((x, i) => x.classList.toggle('filled', i < parseInt(s.dataset.value)));
+        });
+    });
+    const rating = document.getElementById('starRating');
+    if (rating) rating.addEventListener('mouseleave', () => setStars(parseInt(input.value)));
+});
+</script>
+{% endblock %}

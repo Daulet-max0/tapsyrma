@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
+
+    <title>{% block title %}PedStat — Оқытушылар рейтингі{% endblock %} | Түркістан колледжі</title>
+    <meta name="description" content="PedStat — Түркістан жоғары көп салалы қол өнер колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін және рейтингін есептейтін ресми платформа.">
+    <meta name="keywords" content="PedStat, педагог статистикасы, Түркістан колледжі, оқытушылар рейтингі, ғылыми жетістіктер">
+    <meta name="author" content="Түркістан жоғары көп салалы қол өнер колледжі">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}PedStat — Оқытушылар рейтингі{% endblock %}">
+    <meta property="og:description" content="PedStat — Түркістан колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін платформа.">
+    <meta property="og:site_name" content="PedStat">
+    <meta property="og:locale" content="kk_KZ">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="PedStat — Оқытушылар рейтингі">
+    <meta name="twitter:description" content="PedStat — Түркістан колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін платформа.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {# Zyra-стильдік лайм фавикон — қара фон + 'P' әрпі (PedStat) #}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0a'/><text x='50%25' y='50%25' dy='.35em' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='62' fill='%23d4ff00'>P</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230a0a0a'/><text x='50%25' y='50%25' dy='.35em' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='110' fill='%23d4ff00'>P</text></svg>">
+
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="bg-animated"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div id="tsparticles"></div>
+
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="logo">
+            <div class="logo-icon">P</div>
+            <div class="logo-text">
+                PedStat
+                <small data-i18n="logo.subtitle">Түркістан жоғары көп салалы қол өнер колледжі</small>
+            </div>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"><i class="fa-solid fa-house"></i> <span data-i18n="nav.home">Басты бет</span></a></li>
+            <li><a href="{{ url_for('results_page') }}" class="nav-link {% if request.endpoint == 'results_page' %}active{% endif %}"><i class="fa-solid fa-trophy"></i> <span data-i18n="nav.results">Қорытынды</span></a></li>
+            <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"><i class="fa-solid fa-chart-simple"></i> <span data-i18n="nav.dashboard">Статистика</span></a></li>
+            {% if current_user.role == 'teacher' %}
+                <li><a href="{{ url_for('teacher_profile') }}" class="nav-link {% if request.endpoint == 'teacher_profile' %}active{% endif %}"><i class="fa-solid fa-user"></i> <span data-i18n="nav.profile">Менің профилім</span></a></li>
+            {% endif %}
+            {% if current_user.role == 'admin' %}
+                <li><a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}"><i class="fa-solid fa-shield-halved"></i> <span data-i18n="nav.admin">Админ</span></a></li>
+                <li><a href="{{ url_for('admin_teachers') }}" class="nav-link"><i class="fa-solid fa-users"></i> <span data-i18n="nav.teachers">Оқытушылар</span></a></li>
+            {% endif %}
+        </ul>
+
+        <div class="nav-actions">
+            <button class="theme-toggle" id="themeToggle" title="Тақырыпты ауыстыру" data-i18n-title="btn.themeTitle">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            {% if current_user.id %}
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="nav.logout">Шығу</span></a>
+            {% else %}
+                <a href="{{ url_for('login_page') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="nav.login">Кіру</span></a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flashMessages" data-messages='{{ messages | tojson }}'></div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p data-i18n="footer.copy">© {{ now_year }} Түркістан жоғары көп салалы қол өнер колледжі. Барлық құқықтар қорғалған.</p>
+        <p class="mt-1">
+            <a href="{{ url_for('index') }}" data-i18n="footer.home">Басты бет</a> ·
+            <a href="{{ url_for('results_page') }}" data-i18n="footer.results">Қорытынды</a> ·
+            <a href="{{ url_for('dashboard') }}" data-i18n="footer.stats">Статистика</a> ·
+            <a href="{{ url_for('login_page') }}" data-i18n="footer.login">Кіру</a>
+        </p>
+    </footer>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@3/tsparticles.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

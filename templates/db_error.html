@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Дерекқор қатесі{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="panel" style="max-width: 820px; margin: 60px auto;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="font-size: 80px;">🗃️</div>
+            <h1 style="font-size: 28px; margin: 16px 0 10px;">Дерекқор қосылымының қатесі</h1>
+            <p style="color: var(--text-secondary);">
+                PostgreSQL (Railway) қосылмады немесе кестелер орнатылмаған.
+            </p>
+        </div>
+
+        {% if hint %}
+        <div style="background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.35); border-radius: 14px; padding: 20px; margin-bottom: 24px;">
+            <strong style="color: #d4ff00; display: block; margin-bottom: 8px;">
+                <i class="fa-solid fa-lightbulb"></i> Ұсыныс:
+            </strong>
+            <div>{{ hint|safe }}</div>
+        </div>
+        {% endif %}
+
+        <h3 style="margin-bottom: 16px;"><i class="fa-solid fa-wrench"></i> Railway:</h3>
+        <ol style="padding-left: 20px; line-height: 2;">
+            <li>PostgreSQL plugin қосылғанын тексеріңіз</li>
+            <li>Web сервисінде <code>DATABASE_URL</code> айнымалысы бар</li>
+            <li>Shell: <code>python setup_db.py</code></li>
+            <li>Deploy қайта іске қосыңыз</li>
+        </ol>
+        <p><code>DEPLOY_RAILWAY.md</code> — толық нұсқаулық</p>
+
+        <details style="margin-top: 24px; padding: 14px; background: rgba(255,82,82,0.08); border-radius: 10px;">
+            <summary style="cursor: pointer; font-weight: 600; color: #ff8a80;">Техникалық қате</summary>
+            <pre style="margin-top: 10px; font-size: 12px; white-space: pre-wrap;">{{ error }}</pre>
+        </details>
+
+        <div class="text-center" style="margin-top: 24px;">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fa-solid fa-rotate-right"></i> Қайта сынау
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

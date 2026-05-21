@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Статистика — Dashboard{% endblock %}
+
+{% block content %}
+<script>document.body.dataset.titleKey='title.dashboard';</script>
+<div class="container">
+    <div class="hero" style="padding: 30px 0 20px;">
+        <h1><i class="fa-solid fa-chart-simple"></i> <span data-i18n="dash.title">Жалпы статистика</span></h1>
+        <p data-i18n="dash.subtitle">Оқытушылар рейтингінің визуалды көрінісі</p>
+    </div>
+
+    <!-- Counter cards -->
+    <div class="stats-grid" id="counters">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div>
+                <div class="stat-value" data-counter="0" id="cnt-teachers">0</div>
+                <div class="stat-label" data-i18n="dash.teachers">Оқытушылар</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+                <div class="stat-value" data-counter="0" id="cnt-approved">0</div>
+                <div class="stat-label" data-i18n="dash.approved">Расталған жетістіктер</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div>
+                <div class="stat-value" data-counter="0" id="cnt-pending">0</div>
+                <div class="stat-label" data-i18n="dash.pending">Күтілуде</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fa-solid fa-trophy"></i></div>
+            <div>
+                <div class="stat-value" data-counter="0" id="cnt-max">0</div>
+                <div class="stat-label" data-i18n="dash.maxScore">Ең жоғары ұпай</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+        <div class="chart-card full">
+            <h3><i class="fa-solid fa-ranking-star"></i> <span data-i18n="dash.top10">Топ-10 оқытушы</span></h3>
+            <canvas id="chartTop10" height="90"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3><i class="fa-solid fa-chart-pie"></i> <span data-i18n="dash.byType">Жетістік түрлері</span></h3>
+            <canvas id="chartPie" height="260"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3><i class="fa-solid fa-chart-line"></i> <span data-i18n="dash.monthly">Айлар бойынша динамика</span></h3>
+            <canvas id="chartLine" height="260"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#a8b2d8';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+function countUp(el, target, duration = 1500) {
+    const start = 0;
+    const startTime = performance.now();
+    function step(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        el.textContent = Math.floor(start + (target - start) * progress);
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+async function loadDashboard() {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+
+    countUp(document.getElementById('cnt-teachers'), data.counters.TeachersCount);
+    countUp(document.getElementById('cnt-approved'), data.counters.ApprovedCount);
+    countUp(document.getElementById('cnt-pending'), data.counters.PendingCount);
+    countUp(document.getElementById('cnt-max'), data.counters.MaxScore);
+
+    // TOP 10 Bar chart (horizontal)
+    new Chart(document.getElementById('chartTop10'), {
+        type: 'bar',
+        data: {
+            labels: data.top10.map(t => t.FullName),
+            datasets: [{
+                label: _t('dash.chartScore') || 'Ұпай',
+                data: data.top10.map(t => t.TotalScore),
+                backgroundColor: ctx => {
+                    const chart = ctx.chart;
+                    const { ctx: c, chartArea } = chart;
+                    if (!chartArea) return '#d4ff00';
+                    const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+                    g.addColorStop(0, '#a8e024');
+                    g.addColorStop(1, '#d4ff00');
+                    return g;
+                },
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(8,8,8,0.95)',
+                    borderColor: '#d4ff00',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { grid: { display: false } }
+            },
+            animation: { duration: 1500, easing: 'easeOutQuart' }
+        }
+    });
+
+    // Pie chart — жетістік түрлері
+    const pieLabels = data.by_category.map(c => c.Category || (_t('dash.chartOther') || 'Басқа'));
+    const pieData = data.by_category.map(c => c.Cnt);
+    new Chart(document.getElementById('chartPie'), {
+        type: 'doughnut',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieData,
+                backgroundColor: [
+                    '#d4ff00', '#a8e024', '#6dff5c',
+                    '#c5f82a', '#7ab800', '#b8e600',
+                    '#5cba00', '#e6ff66'
+                ],
+                borderColor: 'rgba(8,8,8,0.85)',
+                borderWidth: 3,
+                hoverOffset: 18
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 16, boxWidth: 14 } }
+            },
+            cutout: '65%',
+            animation: { animateRotate: true, duration: 1500 }
+        }
+    });
+
+    // Line chart — айлар бойынша
+    const monthStr = _t('dash.months') || 'Қаң,Ақп,Нау,Сәу,Мам,Мау,Шіл,Там,Қыр,Қаз,Қар,Жел';
+    const monthNames = monthStr.split(',');
+    const lineLabels = data.months.map(m => monthNames[m.M - 1] + ' ' + m.Y);
+    const lineData = data.months.map(m => m.Cnt);
+
+    new Chart(document.getElementById('chartLine'), {
+        type: 'line',
+        data: {
+            labels: lineLabels.length ? lineLabels : [_t('dash.chartNoData') || 'Дерек жоқ'],
+            datasets: [{
+                label: _t('dash.chartAch') || 'Жетістіктер',
+                data: lineData.length ? lineData : [0],
+                borderColor: '#d4ff00',
+                backgroundColor: ctx => {
+                    const chart = ctx.chart;
+                    const { ctx: c, chartArea } = chart;
+                    if (!chartArea) return 'rgba(212,255,0,0.2)';
+                    const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                    g.addColorStop(0, 'rgba(212,255,0,0.4)');
+                    g.addColorStop(1, 'rgba(212,255,0,0)');
+                    return g;
+                },
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointBackgroundColor: '#d4ff00',
+                pointBorderColor: '#0a0a0a',
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+            },
+            animation: { duration: 2000, easing: 'easeOutQuart' }
+        }
+    });
+}
+
+loadDashboard().catch(err => {
+    console.error(err);
+    showToast(_t('dash.loadError') || 'Деректерді жүктеу қатесі', 'error');
+});
+</script>
+{% endblock %}

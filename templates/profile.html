@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Менің профилім — {{ teacher.FullName }}{% endblock %}
+
+{% block content %}
+<script>document.body.dataset.titleKey='title.profile';</script>
+<div class="container">
+
+    <!-- Профиль басы -->
+    <div class="profile-header">
+        <form method="POST" action="{{ url_for('update_photo') }}" enctype="multipart/form-data" id="photoForm">
+            <label class="avatar-wrapper" style="cursor: pointer;" title="Фотоны өзгерту үшін басыңыз" data-i18n-title="profile.photoTitle">
+                <div class="avatar-ring"></div>
+                <div class="avatar-ring-2"></div>
+                <img src="{{ url_for('static', filename=teacher.PhotoPath) if teacher.PhotoPath else 'https://ui-avatars.com/api/?name=' ~ teacher.FullName ~ '&background=1a1a1a&color=d4ff00&size=320' }}"
+                     alt="{{ teacher.FullName }}" class="avatar-img">
+                <input type="file" name="photo" accept="image/*" class="hidden" onchange="document.getElementById('photoForm').submit()">
+            </label>
+        </form>
+
+        <div class="profile-info">
+            <h1>{{ teacher.FullName }}</h1>
+            <div class="meta">
+                <i class="fa-solid fa-building-columns"></i> {{ teacher.Department or '—' }}
+                {% if teacher.Position %} · <i class="fa-solid fa-briefcase"></i> {{ teacher.Position }}{% endif %}
+            </div>
+
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <div class="val" data-counter="{{ teacher.TotalScore }}">0</div>
+                    <div class="lbl" data-i18n="profile.totalScore">Жалпы ұпай</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="val" data-counter="{{ teacher.ApprovedCount }}">0</div>
+                    <div class="lbl" data-i18n="profile.approved">Расталған</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="val" data-counter="{{ teacher.PendingCount }}">0</div>
+                    <div class="lbl" data-i18n="profile.pending">Күтілуде</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="val">#{{ teacher.RankPosition }}</div>
+                    <div class="lbl" data-i18n="profile.rank">Рейтингі</div>
+                </div>
+            </div>
+
+            {% if badges %}
+            <div class="badges-row">
+                {% for b in badges %}
+                <span class="badge-pill" style="border-color: {{ b.Color }}; color: {{ b.Color }};">
+                    <span class="icon">{{ b.Icon }}</span> {{ b.BadgeName }}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if next_badge %}
+            <div class="progress-wrap">
+                <div class="labels">
+                    <span><span data-i18n="teacher.nextLevel">Келесі деңгей:</span> <strong>{{ next_badge.Icon }} {{ next_badge.BadgeName }}</strong></span>
+                    <span>{{ teacher.TotalScore }} / {{ next_badge.MinScore }}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" data-width="{{ (teacher.TotalScore / next_badge.MinScore * 100) | round(0, 'floor') }}"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- Жетістік қосу -->
+        <div class="panel">
+            <h2><span class="icon-box">➕</span> <span data-i18n="profile.addAch">Жетістік қосу</span></h2>
+            <form method="POST" action="{{ url_for('add_achievement') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label data-i18n="profile.achType">Жетістік түрі</label>
+                    <select name="type_id" class="select-field" required>
+                        <option value="" data-i18n="profile.achTypeSelect">-- Таңдаңыз --</option>
+                        {% for t in achievement_types %}
+                        <option value="{{ t.TypeId }}">{{ t.TypeName }} (+{{ t.Score }} ұпай)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="profile.achTitle">Атауы</label>
+                    <input type="text" name="title" class="input-field"
+                           placeholder="Мысалы: Республикалық олимпиаданың I дәрежелі дипломы" data-i18n-placeholder="profile.achTitlePlaceholder" required>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="profile.achDesc">Сипаттама (міндетті емес)</label>
+                    <textarea name="description" class="textarea-field"
+                              placeholder="Қосымша мәлімет..." data-i18n-placeholder="profile.achDescPlaceholder"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="profile.achFile">Растайтын құжат / сурет</label>
+                    <label class="file-upload">
+                        <div class="icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <div class="file-upload-label">
+                            <strong id="fileNameLabel" data-i18n="profile.achFileLabel">Файлды таңдаңыз немесе осында сүйреп әкеліңіз</strong><br>
+                            <small data-i18n="profile.achFileHint">PNG, JPG, PDF, WEBP (макс. 10 МБ)</small>
+                        </div>
+                        <input type="file" name="image" accept="image/*,.pdf" id="achievementFile">
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    <i class="fa-solid fa-paper-plane"></i> <span data-i18n="profile.submit">Жіберу</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Менің жетістіктерім -->
+        <div class="panel">
+            <h2><span class="icon-box">🏆</span> <span data-i18n="profile.myAch">Менің жетістіктерім</span> ({{ achievements|length }})</h2>
+            {% if achievements %}
+                <div class="achievement-list">
+                    {% for a in achievements %}
+                    <div class="ach-item">
+                        <div class="ach-thumb">
+                            {% if a.ImagePath %}
+                                <img src="{{ url_for('static', filename=a.ImagePath) }}" alt="">
+                            {% else %}
+                                🏅
+                            {% endif %}
+                        </div>
+                        <div class="ach-info">
+                            <div class="ach-title">{{ a.Title }}</div>
+                            <div class="ach-meta">
+                                <span><i class="fa-solid fa-tag"></i> {{ a.TypeName }}</span>
+                                <span><i class="fa-regular fa-calendar"></i> {{ a.SubmittedAt.strftime('%Y-%m-%d') if a.SubmittedAt else '' }}</span>
+                                {% if a.IsApproved %}<span><i class="fa-solid fa-star" style="color:#d4ff00"></i> +{{ a.Score }}</span>{% endif %}
+                            </div>
+                            {% if a.IsRejected and a.RejectReason %}
+                                <div style="font-size: 12px; color: #ff5252; margin-top: 6px;">
+                                    <i class="fa-solid fa-circle-info"></i> {{ a.RejectReason }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                            {% if a.IsApproved %}
+                                <span class="ach-status approved"><i class="fa-solid fa-check"></i> <span data-i18n="profile.statusApproved">Расталды</span></span>
+                            {% elif a.IsRejected %}
+                                <span class="ach-status rejected"><i class="fa-solid fa-xmark"></i> <span data-i18n="profile.statusRejected">Қабылданбады</span></span>
+                            {% else %}
+                                <span class="ach-status pending"><i class="fa-solid fa-clock"></i> <span data-i18n="profile.statusPending">Күтілуде</span></span>
+                                <form method="POST" action="{{ url_for('delete_own_achievement', achievement_id=a.AchievementId) }}" data-i18n-confirm="profile.deleteConfirm" onsubmit="return confirm(this.dataset.i18nMsg || 'Өшіруді растайсыз ба?')">
+                                    <button class="btn btn-danger btn-sm" type="submit" title="Өшіру" data-i18n-title="profile.deleteTitle">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="icon">📋</div>
+                    <h3 data-i18n="profile.emptyTitle">Әзірше жетістік жоқ</h3>
+                    <p data-i18n="profile.emptyDesc">Сол жақтағы форма арқылы бірінші жетістігіңізді қосыңыз!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('achievementFile');
+    const label = document.getElementById('fileNameLabel');
+    if (fileInput) {
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length > 0) {
+                label.textContent = e.target.files[0].name;
+            }
+        });
+    }
+
+    // Progress bar анимациясы
+    setTimeout(() => {
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            const w = bar.getAttribute('data-width');
+            bar.style.width = (w > 100 ? 100 : w) + '%';
+        });
+    }, 300);
+});
+</script>
+{% endblock %}

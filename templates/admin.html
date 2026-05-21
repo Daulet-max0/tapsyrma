@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Админ панелі{% endblock %}
+
+{% block content %}
+<script>document.body.dataset.titleKey='title.admin';</script>
+<div class="container">
+    <div class="hero" style="padding: 30px 0 20px;">
+        <h1><i class="fa-solid fa-shield-halved"></i> <span data-i18n="admin.title">Админ панелі</span></h1>
+        <p data-i18n="admin.subtitle">Жетістіктерді қарау, растау және басқару</p>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div>
+                <div class="stat-value" data-counter="{{ stats.TeachersCount }}">0</div>
+                <div class="stat-label" data-i18n="admin.teachers">Оқытушылар</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="fa-solid fa-list-check"></i></div>
+            <div>
+                <div class="stat-value" data-counter="{{ stats.TotalAch }}">0</div>
+                <div class="stat-label" data-i18n="admin.totalAch">Барлық жетістіктер</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+                <div class="stat-value" data-counter="{{ stats.ApprovedCount }}">0</div>
+                <div class="stat-label" data-i18n="admin.approved">Расталған</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div>
+                <div class="stat-value" data-counter="{{ stats.PendingCount }}">0</div>
+                <div class="stat-label" data-i18n="admin.pendingCount">Тексеруді күтуде</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Күтіп тұрған жетістіктер -->
+    <div class="panel mt-3">
+        <h2><span class="icon-box">⏳</span> <span data-i18n="admin.pendingTitle">Тексеруді күтіп тұрғандар</span> ({{ pending|length }})</h2>
+
+        {% if pending %}
+            <div id="pendingList">
+                {% for a in pending %}
+                <div class="approval-row" data-id="{{ a.AchievementId }}">
+                    <input type="checkbox" class="custom-checkbox pending-check" value="{{ a.AchievementId }}">
+
+                    <img src="{{ url_for('static', filename=a.PhotoPath) if a.PhotoPath else 'https://ui-avatars.com/api/?name=' ~ a.FullName ~ '&background=1a1a1a&color=d4ff00' }}"
+                         class="approval-avatar" alt="">
+
+                    <div class="approval-main">
+                        <div class="teacher">{{ a.FullName }}</div>
+                        <div class="title">{{ a.Title }}</div>
+                        {% if a.Description %}
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">{{ a.Description[:120] }}{% if a.Description|length > 120 %}...{% endif %}</div>
+                        {% endif %}
+                        <div>
+                            <span class="type">{{ a.TypeName }} (+{{ a.TypeScore }})</span>
+                            <span style="font-size: 11px; color: var(--text-muted);">
+                                · {{ a.SubmittedAt.strftime('%Y-%m-%d %H:%M') if a.SubmittedAt else '' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="approval-actions">
+                        {% if a.ImagePath %}
+                        <button class="view-img-btn" onclick="openImage('{{ url_for('static', filename=a.ImagePath) }}')" title="Құжатты қарау" data-i18n-title="admin.viewDoc">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-success btn-sm approve-one" data-id="{{ a.AchievementId }}">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm reject-one" data-id="{{ a.AchievementId }}">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">✅</div>
+                <h3 data-i18n="admin.allChecked">Барлығы тексерілген!</h3>
+                <p data-i18n="admin.allCheckedDesc">Қазіргі уақытта расталуды күтіп тұрған жетістіктер жоқ</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Соңғы расталғандар -->
+    {% if recent %}
+    <div class="panel mt-3">
+        <h2><span class="icon-box">📜</span> <span data-i18n="admin.recentTitle">Соңғы оқиғалар</span></h2>
+        <div class="achievement-list">
+            {% for a in recent %}
+            <div class="ach-item">
+                <div class="ach-thumb">
+                    {% if a.IsApproved %}✅{% else %}❌{% endif %}
+                </div>
+                <div class="ach-info">
+                    <div class="ach-title">{{ a.Title }}</div>
+                    <div class="ach-meta">
+                        <span><i class="fa-solid fa-user"></i> {{ a.FullName }}</span>
+                        <span><i class="fa-solid fa-tag"></i> {{ a.TypeName }}</span>
+                        <span><i class="fa-regular fa-calendar"></i> {{ (a.ApprovedAt or a.SubmittedAt).strftime('%Y-%m-%d %H:%M') if (a.ApprovedAt or a.SubmittedAt) else '' }}</span>
+                    </div>
+                </div>
+                <div>
+                    {% if a.IsApproved %}
+                        <span class="ach-status approved">+{{ a.Score }}</span>
+                    {% else %}
+                        <span class="ach-status rejected" data-i18n="admin.rejected">Қабылданбады</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Сақтау батырмасы (floating) -->
+<button class="btn-save" id="saveBtn">
+    <i class="fa-solid fa-check-double"></i>
+    <span data-i18n="admin.save">Сақтау</span> <span class="count" id="selectedCount">0</span>
+</button>
+
+<!-- Lightbox -->
+<div class="modal-backdrop" id="imageLightbox" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 data-i18n="admin.docTitle">Растайтын құжат</h3>
+            <button class="modal-close" onclick="document.getElementById('imageLightbox').classList.remove('open')">×</button>
+        </div>
+        <img src="" class="lightbox-img" id="lightboxImg">
+    </div>
+</div>
+
+<!-- Reject modal -->
+<div class="modal-backdrop" id="rejectModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 data-i18n="admin.rejectTitle">Қабылдамау себебі</h3>
+            <button class="modal-close" onclick="document.getElementById('rejectModal').classList.remove('open')">×</button>
+        </div>
+        <form id="rejectForm">
+            <input type="hidden" id="rejectId">
+            <div class="form-group">
+                <label data-i18n="admin.rejectReason">Себебі</label>
+                <textarea class="textarea-field" id="rejectReason" placeholder="Неліктен қабылданбады?" data-i18n-placeholder="admin.rejectReasonPlaceholder" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger btn-block"><i class="fa-solid fa-xmark"></i> <span data-i18n="admin.rejectBtn">Қабылдамау</span></button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openImage(path) {
+    document.getElementById('lightboxImg').src = path;
+    document.getElementById('imageLightbox').classList.add('open');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const saveBtn = document.getElementById('saveBtn');
+    const countEl = document.getElementById('selectedCount');
+
+    function updateSaveBtn() {
+        const checked = document.querySelectorAll('.pending-check:checked').length;
+        countEl.textContent = checked;
+        saveBtn.classList.toggle('visible', checked > 0);
+    }
+
+    document.querySelectorAll('.pending-check').forEach(cb => {
+        cb.addEventListener('change', updateSaveBtn);
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        const ids = [...document.querySelectorAll('.pending-check:checked')].map(c => c.value);
+        if (!ids.length) return;
+
+        saveBtn.disabled = true;
+        const res = await fetch('/admin/approve-batch', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids})
+        });
+        const data = await res.json();
+        showToast(`✅ ${data.approved} жетістік расталды!`, 'success');
+        setTimeout(() => location.reload(), 1000);
+    });
+
+    // One-click approve
+    document.querySelectorAll('.approve-one').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            btn.disabled = true;
+            await fetch(`/admin/approve/${id}`, {method: 'POST'});
+            const row = btn.closest('.approval-row');
+            row.style.transition = 'all 0.5s';
+            row.style.transform = 'translateX(100%)';
+            row.style.opacity = '0';
+            setTimeout(() => {
+                row.remove();
+                showToast(_t('admin.toastOneApproved') || '✅ Расталды!', 'success');
+                const remaining = document.querySelectorAll('.approval-row').length;
+                if (remaining === 0) setTimeout(() => location.reload(), 1500);
+            }, 500);
+        });
+    });
+
+    // Reject
+    document.querySelectorAll('.reject-one').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('rejectId').value = btn.dataset.id;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').classList.add('open');
+        });
+    });
+
+    document.getElementById('rejectForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('rejectId').value;
+        const reason = document.getElementById('rejectReason').value;
+        const fd = new FormData();
+        fd.append('reason', reason);
+        await fetch(`/admin/reject/${id}`, {method: 'POST', body: fd});
+        document.getElementById('rejectModal').classList.remove('open');
+        const row = document.querySelector(`.approval-row[data-id="${id}"]`);
+        if (row) {
+            row.style.transform = 'translateX(-100%)';
+            row.style.opacity = '0';
+            setTimeout(() => { row.remove(); showToast(_t('admin.toastRejected') || 'Қабылданбады', 'warning'); }, 500);
+        }
+    });
+});
+</script>
+{% endblock %}

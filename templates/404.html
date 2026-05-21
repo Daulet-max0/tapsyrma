@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="empty-state" style="padding: 120px 20px;">
+        <div class="icon" style="font-size: 120px;">🔍</div>
+        <h3 style="font-size: 48px; margin-bottom: 10px;">404</h3>
+        <p style="font-size: 18px; margin-bottom: 30px;" data-i18n="error.404text">Бет табылмады</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-house"></i> <span data-i18n="error.goHome">Басты бетке оралу</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

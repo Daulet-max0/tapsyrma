@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="empty-state" style="padding: 120px 20px;">
+        <div class="icon" style="font-size: 120px;">⚠️</div>
+        <h3 style="font-size: 48px; margin-bottom: 10px;">500</h3>
+        <p style="font-size: 18px; margin-bottom: 10px;" data-i18n="error.500text">Сервер қатесі</p>
+        {% if error %}<p style="font-size: 13px; color: var(--text-muted); max-width: 600px; margin: 0 auto 30px;"><code>{{ error }}</code></p>{% endif %}
+        <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-house"></i> <span data-i18n="error.goHome">Басты бетке оралу</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

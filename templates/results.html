@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Қорытынды — Барлық оқытушылар{% endblock %}
+
+{% block content %}
+<section class="results-page">
+    <div class="results-header">
+        <div>
+            <h1 class="results-title" data-i18n="results.title">
+                <i class="fa-solid fa-trophy"></i> Оқытушылардың жалпы қорытындысы
+            </h1>
+            <p class="results-subtitle" data-i18n="results.subtitle">
+                Барлық оқытушылардың жинаған ұпайлары, рейтингтегі орны және категориялар бойынша талдау
+            </p>
+        </div>
+        <div class="results-actions">
+            <a href="{{ url_for('results_export_csv') }}" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-file-csv"></i>
+                <span data-i18n="results.exportCsv">CSV жүктеу</span>
+            </a>
+            <button onclick="window.print()" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-print"></i>
+                <span data-i18n="results.print">Басып шығару</span>
+            </button>
+        </div>
+    </div>
+
+    {# Жиынтық карточкалар #}
+    <div class="results-summary">
+        <div class="summary-card">
+            <div class="summary-icon" style="background:rgba(96,165,250,.15);color:#60a5fa;">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <div class="summary-value">{{ summary.TotalTeachers }}</div>
+                <div class="summary-label" data-i18n="results.totalTeachers">Барлық оқытушылар</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon" style="background:rgba(212,255,0,.15);color:#d4ff00;">
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <div>
+                <div class="summary-value">{{ summary.SumScore }}</div>
+                <div class="summary-label" data-i18n="results.sumScore">Жалпы ұпай</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon" style="background:rgba(34,197,94,.15);color:#22c55e;">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div>
+                <div class="summary-value">{{ '%.1f'|format(summary.AvgScore) }}</div>
+                <div class="summary-label" data-i18n="results.avgScore">Орташа ұпай</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon" style="background:rgba(244,114,182,.15);color:#f472b6;">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <div>
+                <div class="summary-value">{{ summary.MaxScore }}</div>
+                <div class="summary-label" data-i18n="results.maxScore">Ең жоғары ұпай</div>
+            </div>
+        </div>
+    </div>
+
+    {# Үздік 3 — мини-подиум #}
+    {% if top3 and top3|length > 0 %}
+    <div class="results-top3">
+        <h2 class="section-title" data-i18n="results.top3">🥇 Көш басындағылар</h2>
+        <div class="top3-grid">
+            {% for t in top3[:3] %}
+            <div class="top3-item rank-{{ loop.index }}">
+                <div class="top3-medal">
+                    {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
+                </div>
+                <div class="top3-photo">
+                    {% if t.PhotoPath %}
+                        <img src="{{ url_for('static', filename=t.PhotoPath) }}" alt="{{ t.FullName }}">
+                    {% else %}
+                        <div class="top3-initial">{{ t.FullName[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="top3-name">{{ t.FullName }}</div>
+                <div class="top3-dept">{{ t.Department or '—' }}</div>
+                <div class="top3-score">{{ t.TotalScore }} <small data-i18n="results.points">ұпай</small></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Сүзгі #}
+    <div class="results-filters">
+        <form method="GET" action="{{ url_for('results_page') }}" class="filter-form">
+            <label for="departmentFilter" data-i18n="results.filterDept">Кафедра бойынша:</label>
+            <select name="department" id="departmentFilter" class="select-field" onchange="this.form.submit()">
+                <option value="" data-i18n="results.allDepts">— Барлығы —</option>
+                {% for d in departments %}
+                    <option value="{{ d }}" {% if d == department %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+            {% if department %}
+                <a href="{{ url_for('results_page') }}" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-xmark"></i> <span data-i18n="results.reset">Тазарту</span>
+                </a>
+            {% endif %}
+        </form>
+    </div>
+
+    {# Негізгі кесте #}
+    <div class="results-table-wrap">
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th class="col-rank" data-i18n="results.col.rank">№</th>
+                    <th class="col-teacher" data-i18n="results.col.teacher">Оқытушы</th>
+                    <th class="col-dept" data-i18n="results.col.dept">Кафедра</th>
+                    {% for cat in all_categories %}
+                        <th class="col-cat" title="{{ cat }}">{{ cat }}</th>
+                    {% endfor %}
+                    <th class="col-approved" data-i18n="results.col.approved">Расталған</th>
+                    <th class="col-pending" data-i18n="results.col.pending">Күтілуде</th>
+                    <th class="col-rating" data-i18n="results.col.rating">Баға</th>
+                    <th class="col-total" data-i18n="results.col.total">Жалпы</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in teachers %}
+                    {% set cats = by_teacher.get(t.TeacherId, []) %}
+                    {% set cat_map = {} %}
+                    {% for c in cats %}{% set _ = cat_map.update({c.Category: c.CategoryScore}) %}{% endfor %}
+                <tr class="{% if loop.index == 1 %}row-gold{% elif loop.index == 2 %}row-silver{% elif loop.index == 3 %}row-bronze{% endif %}">
+                    <td class="col-rank">
+                        <span class="rank-badge">{{ t.RankPosition }}</span>
+                    </td>
+                    <td class="col-teacher">
+                        <a href="{{ url_for('teacher_profile_public', teacher_id=t.TeacherId) }}" class="teacher-link">
+                            <div class="teacher-avatar">
+                                {% if t.PhotoPath %}
+                                    <img src="{{ url_for('static', filename=t.PhotoPath) }}" alt="{{ t.FullName }}">
+                                {% else %}
+                                    <span>{{ t.FullName[0] }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="teacher-info">
+                                <div class="teacher-name">{{ t.FullName }}</div>
+                                <div class="teacher-pos">{{ t.Position or '—' }}</div>
+                            </div>
+                        </a>
+                    </td>
+                    <td class="col-dept">{{ t.Department or '—' }}</td>
+                    {% for cat in all_categories %}
+                        <td class="col-cat">
+                            {% if cat_map.get(cat) %}
+                                <span class="cat-badge">{{ cat_map.get(cat) }}</span>
+                            {% else %}
+                                <span class="cat-empty">—</span>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    <td class="col-approved"><span class="pill pill-green">{{ t.ApprovedCount }}</span></td>
+                    <td class="col-pending"><span class="pill pill-yellow">{{ t.PendingCount }}</span></td>
+                    <td class="col-rating">
+                        {% if t.ReviewsCount > 0 %}
+                            <span class="rating-stars">★ {{ '%.1f'|format(t.AvgRating) }}</span>
+                            <small>({{ t.ReviewsCount }})</small>
+                        {% else %}
+                            <span class="cat-empty">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="col-total">
+                        <span class="total-score">{{ t.TotalScore }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ 7 + all_categories|length }}" class="text-center" data-i18n="results.empty">Деректер жоқ</td></tr>
+                {% endfor %}
+            </tbody>
+            {% if teachers %}
+            <tfoot>
+                <tr>
+                    <td colspan="{{ 3 + all_categories|length }}" class="text-right">
+                        <strong data-i18n="results.totalRow">Жалпы:</strong>
+                    </td>
+                    <td><strong>{{ teachers|sum(attribute='ApprovedCount') }}</strong></td>
+                    <td><strong>{{ teachers|sum(attribute='PendingCount') }}</strong></td>
+                    <td></td>
+                    <td><strong class="total-score">{{ teachers|sum(attribute='TotalScore') }}</strong></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+
+    <p class="results-note" data-i18n="results.note">
+        * Ұпай тек админ растаған жетістіктер үшін есептеледі.
+    </p>
+</section>
+{% endblock %}
