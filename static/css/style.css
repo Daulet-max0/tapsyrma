@@ -398,7 +398,7 @@ body.light-mode .hero p {
   max-width: 720px;
   margin: 0 auto 30px;
   font-size: 17px;
-  color: var(--text-secondary);
+  color: #dce1ea;
   animation: fadeInUp 0.8s 0.2s ease forwards;
   opacity: 0;
 }
@@ -430,7 +430,7 @@ body.light-mode .hero p {
   transition: all 0.4s ease;
 }
 
-.search-bar::placeholder { color: var(--text-muted); }
+.search-bar::placeholder { color: #b4bac6; opacity: 1; }
 
 .search-bar:focus {
   outline: none;
@@ -1682,7 +1682,25 @@ footer a:hover { text-decoration: underline; }
   .nav-links { width: 100%; justify-content: center; order: 3; }
   .logo-text { font-size: 14px; }
   .logo-text small { font-size: 9px; }
-  .hero h1 { font-size: 28px; }
+  .hero h1 {
+    font-size: 28px;
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+    background: linear-gradient(135deg, #ffffff 0%, #f0ffd0 70%, #d4ff00 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.75);
+  }
+  .hero p {
+    color: #e8ecf3;
+    font-size: 15px;
+    line-height: 1.55;
+    opacity: 1;
+  }
+  .search-bar::placeholder {
+    color: #cdd2dc;
+    opacity: 1;
+  }
   .podium { flex-direction: column; align-items: center; }
   .podium-place { width: 100%; max-width: 320px; min-height: auto !important; }
   .podium-place.first { order: 1; }
