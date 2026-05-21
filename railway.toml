@@ -1,0 +1,2 @@
+[deploy]
+startCommand = "python setup_db.py && gunicorn wsgi:app"
