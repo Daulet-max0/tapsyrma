@@ -89,10 +89,10 @@ async function loadDashboard() {
     new Chart(document.getElementById('chartTop10'), {
         type: 'bar',
         data: {
-            labels: data.top10.map(t => t.FullName),
+            labels: data.top10.map(t => t.FullName || t.fullname),
             datasets: [{
                 label: _t('dash.chartScore') || 'Ұпай',
-                data: data.top10.map(t => t.TotalScore),
+                data: data.top10.map(t => t.TotalScore ?? t.totalscore ?? 0),
                 backgroundColor: ctx => {
                     const chart = ctx.chart;
                     const { ctx: c, chartArea } = chart;
@@ -128,8 +128,8 @@ async function loadDashboard() {
     });
 
     // Pie chart — жетістік түрлері
-    const pieLabels = data.by_category.map(c => c.Category || (_t('dash.chartOther') || 'Басқа'));
-    const pieData = data.by_category.map(c => c.Cnt);
+    const pieLabels = data.by_category.map(c => c.Category || c.category || (_t('dash.chartOther') || 'Басқа'));
+    const pieData = data.by_category.map(c => c.Cnt ?? c.cnt ?? 0);
     new Chart(document.getElementById('chartPie'), {
         type: 'doughnut',
         data: {
@@ -159,8 +159,12 @@ async function loadDashboard() {
     // Line chart — айлар бойынша
     const monthStr = _t('dash.months') || 'Қаң,Ақп,Нау,Сәу,Мам,Мау,Шіл,Там,Қыр,Қаз,Қар,Жел';
     const monthNames = monthStr.split(',');
-    const lineLabels = data.months.map(m => monthNames[m.M - 1] + ' ' + m.Y);
-    const lineData = data.months.map(m => m.Cnt);
+    const lineLabels = data.months.map(m => {
+        const mo = m.M ?? m.m ?? 1;
+        const yr = m.Y ?? m.y ?? '';
+        return (monthNames[mo - 1] || mo) + ' ' + yr;
+    });
+    const lineData = data.months.map(m => m.Cnt ?? m.cnt ?? 0);
 
     new Chart(document.getElementById('chartLine'), {
         type: 'line',

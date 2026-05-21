@@ -24,7 +24,7 @@ _IDENTIFIERS = sorted(
         "ApprovedCount", "PendingCount", "RejectedCount", "AvgRating",
         "ReviewsCount", "RankPosition", "ReviewerName", "ReviewerPhoto",
         "TypeScore", "TeachersCount", "MaxScore", "SumScore", "AvgScore",
-        "TotalTeachers", "TotalAch",
+        "TotalTeachers", "TotalAch", "Cnt", "M", "Y",
     ],
     key=len,
     reverse=True,
