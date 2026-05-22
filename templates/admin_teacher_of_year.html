@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Жыл оқытушысы{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="hero" style="padding: 30px 0 20px;">
+        <h1><i class="fa-solid fa-award"></i> Жыл оқытушысы</h1>
+        <p>Оқу жылы бойынша үздік оқытушы</p>
+    </div>
+    {% include 'admin_nav.html' %}
+
+    <form method="GET" class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+        <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+            <label>Оқу жылы</label>
+            <select name="year" class="select-field" onchange="this.form.submit()">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == academic_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    {% if published %}
+    <div class="panel mt-3" style="border-color: rgba(212,255,0,0.4);">
+        <h2>🏆 Жарияланған: {{ academic_year }}</h2>
+        <p style="font-size: 18px; font-weight: 700; color: #d4ff00;">{{ published.FullName }}</p>
+        <p style="color: var(--text-muted);">{{ published.Department or '' }}</p>
+    </div>
+    {% endif %}
+
+    <div class="panel mt-3">
+        <h2>Рейтинг — {{ academic_year }}</h2>
+        <table class="data-table">
+            <thead>
+                <tr><th>#</th><th>Оқытушы</th><th>Мамандығы</th><th>Жыл ұпайы</th><th>Жетістік</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for t in ranking %}
+                {% if t.YearScore and t.YearScore > 0 %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ t.FullName }}</td>
+                    <td>{{ t.Department or '—' }}</td>
+                    <td><strong style="color:#d4ff00;">{{ t.YearScore }}</strong></td>
+                    <td>{{ t.YearAchCount }}</td>
+                    <td>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="publish">
+                            <input type="hidden" name="academic_year" value="{{ academic_year }}">
+                            <input type="hidden" name="teacher_id" value="{{ t.TeacherId }}">
+                            <button type="submit" class="btn btn-primary btn-sm">Жариялау</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endif %}
+                {% else %}
+                <tr><td colspan="6">Осы жылға расталған жетістік жоқ</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

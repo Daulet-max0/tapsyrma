@@ -334,6 +334,12 @@ body.light-mode .navbar {
 .btn-sm { padding: 8px 16px; font-size: 12px; }
 .btn-lg { padding: 16px 36px; font-size: 16px; }
 .btn-block { width: 100%; }
+.btn-warning {
+  background: rgba(255, 179, 0, 0.2);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+.btn-warning:hover { background: rgba(255, 179, 0, 0.35); }
 .btn-icon { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
 
 .btn::after {
@@ -1249,6 +1255,27 @@ body.light-mode .select-field option:checked {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   border-color: transparent;
 }
+
+.site-banner {
+  max-width: 1200px;
+  margin: 12px auto 0;
+  padding: 12px 20px;
+  background: rgba(212, 255, 0, 0.12);
+  border: 1px solid rgba(212, 255, 0, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.site-banner strong { color: var(--glow-gold); }
+
+.admin-bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+.admin-bulk-bar .spacer { flex: 1; }
 
 .login-footer-note {
   margin-top: 20px;

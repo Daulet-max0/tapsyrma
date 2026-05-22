@@ -20,6 +20,7 @@ CREATE TABLE "Admins" (
     "FullName"      VARCHAR(200),
     "Email"         VARCHAR(100) UNIQUE,
     "PasswordHash"  VARCHAR(255) NOT NULL,
+    "Role"          VARCHAR(30) NOT NULL DEFAULT 'superadmin',
     "CreatedAt"     TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -34,6 +35,11 @@ CREATE TABLE "Teachers" (
     "Email"         VARCHAR(200),
     "PhotoPath"     VARCHAR(500),
     "TotalScore"    INT NOT NULL DEFAULT 0,
+    "IsBlocked"     BOOLEAN NOT NULL DEFAULT FALSE,
+    "YearlyGoal"    INT,
+    "LastLoginAt"   TIMESTAMP,
+    "Bio"           VARCHAR(2000),
+    "Phone"         VARCHAR(50),
     "CreatedAt"     TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -58,7 +64,24 @@ CREATE TABLE "Achievements" (
     "RejectReason"   VARCHAR(500),
     "Score"          INT NOT NULL DEFAULT 0,
     "SubmittedAt"    TIMESTAMP NOT NULL DEFAULT NOW(),
-    "ApprovedAt"     TIMESTAMP
+    "ApprovedAt"     TIMESTAMP,
+    "AcademicYear"   VARCHAR(20)
+);
+
+-- BATCH
+CREATE TABLE "SiteSettings" (
+    "SettingKey"   VARCHAR(100) PRIMARY KEY,
+    "SettingValue" TEXT,
+    "UpdatedAt"    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- BATCH
+CREATE TABLE "DepartmentGoals" (
+    "GoalId"       SERIAL PRIMARY KEY,
+    "Department"   VARCHAR(200) NOT NULL,
+    "AcademicYear" VARCHAR(20) NOT NULL,
+    "YearlyGoal"   INT NOT NULL DEFAULT 0,
+    UNIQUE ("Department", "AcademicYear")
 );
 
 -- BATCH
@@ -152,6 +175,11 @@ SELECT
     t."Email",
     t."PhotoPath",
     t."TotalScore",
+    t."IsBlocked",
+    t."YearlyGoal",
+    t."LastLoginAt",
+    t."Bio",
+    t."Phone",
     (SELECT COUNT(*) FROM "Achievements" a
      WHERE a."TeacherId" = t."TeacherId" AND a."IsApproved" = TRUE) AS ApprovedCount,
     (SELECT COUNT(*) FROM "Achievements" a

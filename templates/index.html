@@ -189,6 +189,16 @@
     <h1 data-i18n="home.title">Оқытушылар ғылыми-әдістемелік жетістіктері рейтингі</h1>
     <p data-i18n="home.subtitle">Түркістан жоғары көп салалы қол өнер колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін және рейтингін есептейтін ресми платформа.</p>
 
+    {% if teacher_of_year %}
+    <div class="site-banner" style="max-width:720px;margin:16px auto 0;">
+        <strong><i class="fa-solid fa-award"></i> {{ teacher_of_year_label }} жыл оқытушысы:</strong>
+        <a href="{{ url_for('teacher_profile_public', teacher_id=teacher_of_year.TeacherId) }}" style="color:#d4ff00;font-weight:700;">
+            {{ teacher_of_year.FullName }}
+        </a>
+        ({{ teacher_of_year.TotalScore }} ұпай)
+    </div>
+    {% endif %}
+
     <div class="search-container">
         <form method="GET" action="{{ url_for('index') }}" id="searchForm">
             <input type="text"

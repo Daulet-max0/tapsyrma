@@ -53,6 +53,17 @@
             </div>
             {% endif %}
 
+            {% if teacher.YearlyGoal and teacher.YearlyGoal > 0 %}
+            <div class="progress-wrap" style="margin-top: 12px;">
+                <div class="labels">
+                    <span>🎯 <strong>{{ academic_year }} жылдық мақсат</strong></span>
+                    <span>{{ teacher.TotalScore }} / {{ teacher.YearlyGoal }} ұпай</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" data-width="{{ ([teacher.TotalScore / teacher.YearlyGoal * 100, 100] | min) | round(0, 'floor') }}"></div>
+                </div>
+            </div>
+            {% endif %}
             {% if next_badge %}
             <div class="progress-wrap">
                 <div class="labels">

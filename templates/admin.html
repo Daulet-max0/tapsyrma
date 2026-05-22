@@ -48,6 +48,19 @@
         <h2><span class="icon-box">⏳</span> <span data-i18n="admin.pendingTitle">Тексеруді күтіп тұрғандар</span> ({{ pending|length }})</h2>
 
         {% if pending %}
+            <div class="admin-bulk-bar">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" class="custom-checkbox" id="selectAllPending">
+                    Барлығын таңдау
+                </label>
+                <span class="spacer"></span>
+                <button type="button" class="btn btn-danger btn-sm" id="rejectBatchBtn" disabled>
+                    <i class="fa-solid fa-xmark"></i> Жаппай қабылдамау
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="deleteBatchBtn" disabled>
+                    <i class="fa-solid fa-trash"></i> Жаппай өшіру
+                </button>
+            </div>
             <div id="pendingList">
                 {% for a in pending %}
                 <div class="approval-row" data-id="{{ a.AchievementId }}">
@@ -130,7 +143,7 @@
 <!-- Сақтау батырмасы (floating) -->
 <button class="btn-save" id="saveBtn">
     <i class="fa-solid fa-check-double"></i>
-    <span data-i18n="admin.save">Сақтау</span> <span class="count" id="selectedCount">0</span>
+    <span data-i18n="admin.save">Жаппай растау</span> <span class="count" id="selectedCount">0</span>
 </button>
 
 <!-- Lightbox -->
@@ -172,15 +185,66 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('saveBtn');
     const countEl = document.getElementById('selectedCount');
 
+    const rejectBatchBtn = document.getElementById('rejectBatchBtn');
+    const deleteBatchBtn = document.getElementById('deleteBatchBtn');
+    const selectAll = document.getElementById('selectAllPending');
+
+    function getSelectedIds() {
+        return [...document.querySelectorAll('.pending-check:checked')].map(c => c.value);
+    }
+
     function updateSaveBtn() {
-        const checked = document.querySelectorAll('.pending-check:checked').length;
-        countEl.textContent = checked;
-        saveBtn.classList.toggle('visible', checked > 0);
+        const n = document.querySelectorAll('.pending-check:checked').length;
+        countEl.textContent = n;
+        saveBtn.classList.toggle('visible', n > 0);
+        if (rejectBatchBtn) rejectBatchBtn.disabled = n === 0;
+        if (deleteBatchBtn) deleteBatchBtn.disabled = n === 0;
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            document.querySelectorAll('.pending-check').forEach(cb => { cb.checked = selectAll.checked; });
+            updateSaveBtn();
+        });
     }
 
     document.querySelectorAll('.pending-check').forEach(cb => {
         cb.addEventListener('change', updateSaveBtn);
     });
+
+    if (rejectBatchBtn) {
+        rejectBatchBtn.addEventListener('click', async () => {
+            const ids = getSelectedIds();
+            if (!ids.length) return;
+            const reason = prompt('Қабылдамау себебі (барлығына):', 'Жаппай қабылданбады');
+            if (reason === null) return;
+            rejectBatchBtn.disabled = true;
+            const res = await fetch('/admin/reject-batch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids, reason: reason || 'Жаппай қабылданбады'})
+            });
+            const data = await res.json();
+            showToast(`⚠️ ${data.rejected} жетістік қабылданбады`, 'warning');
+            setTimeout(() => location.reload(), 800);
+        });
+    }
+
+    if (deleteBatchBtn) {
+        deleteBatchBtn.addEventListener('click', async () => {
+            const ids = getSelectedIds();
+            if (!ids.length || !confirm('Таңдалған күтудегі жетістіктерді өшіруді растайсыз ба?')) return;
+            deleteBatchBtn.disabled = true;
+            const res = await fetch('/admin/delete-batch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids})
+            });
+            const data = await res.json();
+            showToast(`🗑 ${data.deleted} жазба өшірілді`, 'info');
+            setTimeout(() => location.reload(), 800);
+        });
+    }
 
     saveBtn.addEventListener('click', async () => {
         const ids = [...document.querySelectorAll('.pending-check:checked')].map(c => c.value);

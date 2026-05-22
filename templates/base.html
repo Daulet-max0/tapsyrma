@@ -73,6 +73,13 @@
         </div>
     </nav>
 
+    {% if site_announcement and site_announcement.title %}
+    <div class="site-banner">
+        <strong><i class="fa-solid fa-bullhorn"></i> {{ site_announcement.title }}</strong>
+        {% if site_announcement.body %}<span> — {{ site_announcement.body }}</span>{% endif %}
+    </div>
+    {% endif %}
+
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

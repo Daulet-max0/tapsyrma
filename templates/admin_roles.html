@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Рөл басқару{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="hero" style="padding: 30px 0 20px;">
+        <h1><i class="fa-solid fa-user-shield"></i> Рөл басқару</h1>
+        <p>Модератор / Админ / Суперадмин</p>
+    </div>
+    {% include 'admin_nav.html' %}
+    <div class="panel">
+        <table class="data-table">
+            <thead>
+                <tr><th>Логин</th><th>Аты</th><th>Email</th><th>Рөл</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for a in admins %}
+                <tr>
+                    <td>{{ a.Username }}</td>
+                    <td>{{ a.FullName or '—' }}</td>
+                    <td>{{ a.Email or '—' }}</td>
+                    <td>
+                        <form method="POST" style="display:flex;gap:8px;">
+                            <input type="hidden" name="admin_id" value="{{ a.AdminId }}">
+                            <select name="role" class="select-field">
+                                <option value="moderator" {% if a.Role == 'moderator' %}selected{% endif %}>Модератор</option>
+                                <option value="admin" {% if a.Role == 'admin' %}selected{% endif %}>Админ</option>
+                                <option value="superadmin" {% if a.Role == 'superadmin' %}selected{% endif %}>Суперадмин</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Сақтау</button>
+                        </form>
+                    </td>
+                    <td></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:16px;">
+            <strong>Модератор</strong> — жетістік растау/қабылдамау, журнал, жыл оқытушысы.<br>
+            <strong>Админ</strong> — оқытушылар, баптаулар, импорт.<br>
+            <strong>Суперадмин</strong> — рөлдер, оқытушыны толық өшіру.
+        </p>
+    </div>
+</div>
+{% endblock %}

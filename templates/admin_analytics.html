@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Белсенділік статистикасы{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="hero" style="padding: 30px 0 20px;">
+        <h1><i class="fa-solid fa-chart-line"></i> Белсенділік</h1>
+        <p>Кіру және жетістік қосу динамикасы</p>
+    </div>
+    {% include 'admin_nav.html' %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-right-to-bracket"></i></div>
+            <div>
+                <div class="stat-value">{{ logins_week.Cnt or 0 }}</div>
+                <div class="stat-label">Кіру (7 күн)</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="fa-solid fa-plus"></i></div>
+            <div>
+                <div class="stat-value">{{ ach_week.Cnt or 0 }}</div>
+                <div class="stat-label">Жетістік жіберу (7 күн)</div>
+            </div>
+        </div>
+    </div>
+
+    {% if dept_ranking %}
+    <div class="panel mt-3">
+        <h2><i class="fa-solid fa-building"></i> Кафедра рейтингі</h2>
+        <table class="data-table">
+            <thead><tr><th>#</th><th>Кафедра</th><th>Жалпы ұпай</th><th>Оқытушы</th></tr></thead>
+            <tbody>
+                {% for d in dept_ranking %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ d.Department }}</td>
+                    <td><strong style="color:#d4ff00;">{{ d.DeptScore }}</strong></td>
+                    <td>{{ d.TeacherCount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="grid-2 mt-3">
+        <div class="panel">
+            <h2>Кіру (30 күн)</h2>
+            <ul style="list-style:none;font-size:13px;">
+                {% for r in logins_day %}
+                <li style="padding:6px 0;border-bottom:1px solid var(--glass-border);">
+                    {{ r.D.strftime('%Y-%m-%d') if r.D else r.d }} — <strong>{{ r.Cnt or r.cnt }}</strong>
+                </li>
+                {% else %}
+                <li>Дерек жоқ</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="panel">
+            <h2>Жетістік қосу (30 күн)</h2>
+            <ul style="list-style:none;font-size:13px;">
+                {% for r in ach_day %}
+                <li style="padding:6px 0;border-bottom:1px solid var(--glass-border);">
+                    {{ r.D.strftime('%Y-%m-%d') if r.D else r.d }} — <strong>{{ r.Cnt or r.cnt }}</strong>
+                </li>
+                {% else %}
+                <li>Дерек жоқ</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

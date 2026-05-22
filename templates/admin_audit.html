@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Өзгертулер журналы{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="hero" style="padding: 30px 0 20px;">
+        <h1><i class="fa-solid fa-clock-rotate-left"></i> Audit журналы</h1>
+        <p>Кім, қашан, не істеді (соңғы 500 жазба)</p>
+    </div>
+    {% include 'admin_nav.html' %}
+    <div class="panel">
+        <div class="table-wrap" style="padding:0;border:none;background:transparent;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Уақыт</th>
+                        <th>Рөл</th>
+                        <th>ID</th>
+                        <th>Әрекет</th>
+                        <th>Толығырақ</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                    <tr>
+                        <td style="white-space:nowrap;font-size:12px;">{{ l.CreatedAt.strftime('%Y-%m-%d %H:%M') if l.CreatedAt else '' }}</td>
+                        <td>{{ l.UserType }}</td>
+                        <td>{{ l.UserId or '—' }}</td>
+                        <td><code>{{ l.Action }}</code></td>
+                        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;">{{ l.Details or '' }}</td>
+                        <td style="font-size:11px;color:var(--text-muted);">{{ l.IpAddress or '' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6">Жазбалар жоқ</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

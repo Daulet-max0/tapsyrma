@@ -24,6 +24,8 @@ from werkzeug.utils import secure_filename
 
 import config
 import db
+import schema
+import mailer
 
 
 app = Flask(__name__)
@@ -75,21 +77,6 @@ def ensure_admin_email_column():
     """)
 
 
-def generate_unique_login_from_email(email: str) -> str:
-    """Email-ден бірегей Login жасау: `aigul@mail.kz` → `aigul`, `aigul1`..."""
-    import re as _re
-    base = (email or "").split("@")[0].lower()
-    base = _re.sub(r"[^a-z0-9_.]", "", base) or "user"
-    if len(base) < 3:
-        base = (base + "user")[:8]
-    candidate = base
-    i = 1
-    while db.fetch_one("SELECT TeacherId FROM Teachers WHERE Login = ?", (candidate,)):
-        candidate = f"{base}{i}"
-        i += 1
-    return candidate
-
-
 # =========================================================================
 # Көмекшілер
 # =========================================================================
@@ -113,18 +100,59 @@ def save_upload(file_storage, subfolder: str = "") -> str:
     return rel.replace("\\", "/")
 
 
-def login_required(role: str = None):
+ADMIN_ROLE_LEVEL = {"moderator": 1, "admin": 2, "superadmin": 3}
+
+
+def current_academic_year() -> str:
+    """Қыркүйек—тамыз оқу жылы."""
+    now = datetime.now()
+    if now.month >= 9:
+        return f"{now.year}-{now.year + 1}"
+    return f"{now.year - 1}-{now.year}"
+
+
+def admin_role_level() -> int:
+    if session.get("role") != "admin":
+        return 0
+    return ADMIN_ROLE_LEVEL.get(session.get("admin_role", "admin"), 0)
+
+
+def login_required(role: str = None, min_admin_role: str = "moderator"):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             if "user_id" not in session:
                 return redirect(url_for("login_page"))
-            if role and session.get("role") != role:
+            if role == "teacher" and session.get("role") != "teacher":
+                flash("Бұл бетке кіру рұқсат етілмеген", "error")
+                return redirect(url_for("index"))
+            if role == "admin":
+                if session.get("role") != "admin":
+                    flash("Бұл бетке кіру рұқсат етілмеген", "error")
+                    return redirect(url_for("index"))
+                need = ADMIN_ROLE_LEVEL.get(min_admin_role, 1)
+                if admin_role_level() < need:
+                    flash("Бұл әрекетке рұқсатыңыз жоқ", "error")
+                    return redirect(url_for("admin_panel"))
+            elif role and session.get("role") != role:
                 flash("Бұл бетке кіру рұқсат етілмеген", "error")
                 return redirect(url_for("index"))
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def _notify_teacher_approved(achievement_id: int) -> None:
+    row = db.fetch_one(
+        """
+        SELECT t.Email, a.Title FROM Achievements a
+        INNER JOIN Teachers t ON a.TeacherId = t.TeacherId
+        WHERE a.AchievementId = ?
+        """,
+        (achievement_id,),
+    )
+    if row and row.get("Email"):
+        mailer.notify_achievement_approved(row["Email"], row.get("Title") or "Жетістік")
 
 
 def log_audit(user_type: str, user_id: int, action: str, details: str = ""):
@@ -140,13 +168,26 @@ def log_audit(user_type: str, user_id: int, action: str, details: str = ""):
 @app.context_processor
 def inject_globals():
     """Шаблондарда қолжетімді жаһандық айнымалылар."""
+    announcement = None
+    try:
+        schema.ensure_schema()
+        if schema.get_setting("announcement_active") == "1":
+            announcement = {
+                "title": schema.get_setting("announcement_title"),
+                "body": schema.get_setting("announcement_body"),
+            }
+    except Exception:
+        pass
     return {
         "current_user": {
             "id": session.get("user_id"),
             "name": session.get("user_name"),
             "role": session.get("role"),
+            "admin_role": session.get("admin_role"),
         },
         "now_year": datetime.now().year,
+        "site_announcement": announcement,
+        "academic_year": current_academic_year(),
     }
 
 
@@ -159,10 +200,10 @@ def index():
     search = request.args.get("q", "").strip()
     sort = request.args.get("sort", "score")
 
-    query = "SELECT * FROM vw_TeacherRating"
+    query = "SELECT * FROM vw_TeacherRating WHERE COALESCE(IsBlocked, FALSE) = FALSE"
     params = ()
     if search:
-        query += " WHERE FullName LIKE ? OR Department LIKE ?"
+        query += " AND (FullName LIKE ? OR Department LIKE ?)"
         params = (f"%{search}%", f"%{search}%")
 
     if sort == "name":
@@ -187,9 +228,23 @@ def index():
             (SELECT COALESCE(MAX(TotalScore), 0) FROM Teachers) AS MaxScore
     """)
 
+    teacher_of_year = None
+    try:
+        schema.ensure_schema()
+        y = current_academic_year()
+        tid = schema.get_setting(f"teacher_of_year_{y}", "")
+        if tid.isdigit():
+            teacher_of_year = db.fetch_one(
+                "SELECT * FROM vw_TeacherRating WHERE TeacherId = ?", (int(tid),)
+            )
+    except Exception:
+        pass
+
     return render_template("index.html",
                            teachers=teachers, top3=top3, stats=stats,
-                           search=search, sort=sort)
+                           search=search, sort=sort,
+                           teacher_of_year=teacher_of_year,
+                           teacher_of_year_label=current_academic_year())
 
 
 @app.route("/teacher/<int:teacher_id>")
@@ -264,6 +319,7 @@ def login_submit():
             session["user_id"] = user["AdminId"]
             session["user_name"] = user.get("FullName") or user["Username"]
             session["role"] = "admin"
+            session["admin_role"] = (user.get("Role") or "admin").lower()
             log_audit("admin", user["AdminId"], "login", "success")
             return redirect(url_for("admin_panel"))
     else:
@@ -271,11 +327,18 @@ def login_submit():
             "SELECT * FROM Teachers WHERE LOWER(Email) = ?",
             (email,)
         )
+        if user and user.get("IsBlocked"):
+            flash("Аккаунтыңыз уақытша бұғатталған. Әкімшіге хабарласыңыз.", "error")
+            return redirect(url_for("login_page"))
         if user and check_password_hash(user["PasswordHash"], password):
             session.permanent = True
             session["user_id"] = user["TeacherId"]
             session["user_name"] = user["FullName"]
             session["role"] = "teacher"
+            db.execute(
+                "UPDATE Teachers SET LastLoginAt = NOW() WHERE TeacherId = ?",
+                (user["TeacherId"],),
+            )
             log_audit("teacher", user["TeacherId"], "login", "success")
             return redirect(url_for("teacher_profile"))
 
@@ -349,9 +412,9 @@ def add_achievement():
         image_path = save_upload(request.files["image"], "achievements")
 
     db.execute("""
-        INSERT INTO Achievements (TeacherId, TypeId, Title, Description, ImagePath, IsApproved)
-        VALUES (?, ?, ?, ?, ?, FALSE)
-    """, (teacher_id, type_id, title, description, image_path))
+        INSERT INTO Achievements (TeacherId, TypeId, Title, Description, ImagePath, IsApproved, AcademicYear)
+        VALUES (?, ?, ?, ?, ?, FALSE, ?)
+    """, (teacher_id, type_id, title, description, image_path, current_academic_year()))
 
     log_audit("teacher", teacher_id, "achievement_submit", title)
     flash("Жетістік қабылданды, админ тексеруін күтіңіз", "success")
@@ -390,7 +453,7 @@ def update_photo():
 # АДМИН ПАНЕЛІ
 # =========================================================================
 @app.route("/admin")
-@login_required(role="admin")
+@login_required(role="admin", min_admin_role="moderator")
 def admin_panel():
     pending = db.fetch_all("""
         SELECT a.*, at.TypeName, at.Score AS TypeScore, t.FullName, t.PhotoPath
@@ -422,15 +485,16 @@ def admin_panel():
 
 
 @app.route("/admin/approve/<int:achievement_id>", methods=["POST"])
-@login_required(role="admin")
+@login_required(role="admin", min_admin_role="moderator")
 def admin_approve(achievement_id: int):
     db.call_proc("sp_ApproveAchievement", (achievement_id,))
+    _notify_teacher_approved(achievement_id)
     log_audit("admin", session["user_id"], "approve_achievement", str(achievement_id))
     return jsonify({"status": "ok"})
 
 
 @app.route("/admin/reject/<int:achievement_id>", methods=["POST"])
-@login_required(role="admin")
+@login_required(role="admin", min_admin_role="moderator")
 def admin_reject(achievement_id: int):
     if request.is_json:
         reason = (request.json or {}).get("reason", "")
@@ -442,13 +506,15 @@ def admin_reject(achievement_id: int):
 
 
 @app.route("/admin/approve-batch", methods=["POST"])
-@login_required(role="admin")
+@login_required(role="admin", min_admin_role="moderator")
 def admin_approve_batch():
     ids = request.json.get("ids", []) if request.is_json else request.form.getlist("ids[]")
     count = 0
     for aid in ids:
         try:
-            db.call_proc("sp_ApproveAchievement", (int(aid),))
+            aid = int(aid)
+            db.call_proc("sp_ApproveAchievement", (aid,))
+            _notify_teacher_approved(aid)
             count += 1
         except Exception:
             pass
@@ -456,9 +522,49 @@ def admin_approve_batch():
     return jsonify({"status": "ok", "approved": count})
 
 
+@app.route("/admin/reject-batch", methods=["POST"])
+@login_required(role="admin", min_admin_role="moderator")
+def admin_reject_batch():
+    data = request.json if request.is_json else request.form
+    ids = (request.json or {}).get("ids", []) if request.is_json else request.form.getlist("ids[]")
+    reason = (data.get("reason") if request.is_json else request.form.get("reason")) or "Жаппай қабылданбады"
+    count = 0
+    for aid in ids:
+        try:
+            db.call_proc("sp_RejectAchievement", (int(aid), reason))
+            count += 1
+        except Exception:
+            pass
+    log_audit("admin", session["user_id"], "batch_reject", f"count={count}")
+    return jsonify({"status": "ok", "rejected": count})
+
+
+@app.route("/admin/delete-batch", methods=["POST"])
+@login_required(role="admin", min_admin_role="moderator")
+def admin_delete_batch():
+    ids = (request.json or {}).get("ids", []) if request.is_json else request.form.getlist("ids[]")
+    count = 0
+    for aid in ids:
+        try:
+            n = db.execute(
+                """
+                DELETE FROM Achievements
+                WHERE AchievementId = ? AND IsApproved = FALSE AND IsRejected = FALSE
+                """,
+                (int(aid),),
+            )
+            if n:
+                count += 1
+        except Exception:
+            pass
+    log_audit("admin", session["user_id"], "batch_delete_pending", f"count={count}")
+    return jsonify({"status": "ok", "deleted": count})
+
+
 @app.route("/admin/teachers", methods=["GET", "POST"])
-@login_required(role="admin")
+@login_required(role="admin", min_admin_role="admin")
 def admin_teachers():
+    schema.ensure_schema()
     if request.method == "POST":
         action = request.form.get("action")
         if action == "create":
@@ -468,18 +574,37 @@ def admin_teachers():
             department = request.form.get("department", "").strip()
             position = request.form.get("position", "").strip()
             email = request.form.get("email", "").strip()
+            yearly_goal = request.form.get("yearly_goal", "").strip()
+            yg = int(yearly_goal) if yearly_goal.isdigit() else None
             if not full_name or not login or not password:
                 flash("Барлық негізгі өрістерді толтырыңыз", "error")
             else:
                 try:
                     db.execute("""
-                        INSERT INTO Teachers (FullName, Login, PasswordHash, Department, Position, Email)
-                        VALUES (?,?,?,?,?,?)
-                    """, (full_name, login, generate_password_hash(password), department, position, email))
+                        INSERT INTO Teachers (FullName, Login, PasswordHash, Department, Position, Email, YearlyGoal)
+                        VALUES (?,?,?,?,?,?,?)
+                    """, (full_name, login, generate_password_hash(password), department, position, email, yg))
                     flash("Оқытушы қосылды", "success")
+                    log_audit("admin", session["user_id"], "teacher_create", login)
                 except Exception as exc:
                     flash(f"Қате: {exc}", "error")
-        elif action == "delete":
+        elif action == "block":
+            tid = int(request.form.get("teacher_id"))
+            db.execute("UPDATE Teachers SET IsBlocked = TRUE WHERE TeacherId = ?", (tid,))
+            flash("Аккаунт бұғатталды", "success")
+            log_audit("admin", session["user_id"], "teacher_block", str(tid))
+        elif action == "unblock":
+            tid = int(request.form.get("teacher_id"))
+            db.execute("UPDATE Teachers SET IsBlocked = FALSE WHERE TeacherId = ?", (tid,))
+            flash("Бұғат алынды", "success")
+            log_audit("admin", session["user_id"], "teacher_unblock", str(tid))
+        elif action == "set_goal":
+            tid = int(request.form.get("teacher_id"))
+            goal = request.form.get("yearly_goal", "").strip()
+            yg = int(goal) if goal.isdigit() else None
+            db.execute("UPDATE Teachers SET YearlyGoal = ? WHERE TeacherId = ?", (yg, tid))
+            flash("Жылдық мақсат сақталды", "success")
+        elif action == "delete" and admin_role_level() >= ADMIN_ROLE_LEVEL["superadmin"]:
             teacher_id = int(request.form.get("teacher_id"))
             try:
                 db.execute("DELETE FROM Achievements WHERE TeacherId = ?", (teacher_id,))
@@ -487,12 +612,272 @@ def admin_teachers():
                 db.execute("DELETE FROM Reviews WHERE TeacherId = ? OR ReviewerId = ?", (teacher_id, teacher_id))
                 db.execute("DELETE FROM Teachers WHERE TeacherId = ?", (teacher_id,))
                 flash("Оқытушы өшірілді", "success")
+                log_audit("admin", session["user_id"], "teacher_delete", str(teacher_id))
             except Exception as exc:
                 flash(f"Қате: {exc}", "error")
+        elif action == "delete":
+            flash("Тек суперадмин өшіре алады", "error")
+        elif action == "import_csv":
+            f = request.files.get("csv_file")
+            if not f or not f.filename:
+                flash("CSV файл таңдаңыз", "error")
+            else:
+                import csv
+                import io
+                text = f.read().decode("utf-8-sig")
+                reader = csv.DictReader(io.StringIO(text), delimiter=";")
+                if not reader.fieldnames:
+                    reader = csv.DictReader(io.StringIO(text), delimiter=",")
+                ok, err = 0, 0
+                for row in reader:
+                    fn = (row.get("FullName") or row.get("full_name") or row.get("Аты") or "").strip()
+                    login = (row.get("Login") or row.get("login") or "").strip()
+                    pwd = (row.get("Password") or row.get("password") or "teacher123").strip()
+                    if not fn or not login:
+                        err += 1
+                        continue
+                    try:
+                        yg = row.get("YearlyGoal") or row.get("yearly_goal") or ""
+                        yg_i = int(yg) if str(yg).isdigit() else None
+                        db.execute("""
+                            INSERT INTO Teachers (FullName, Login, PasswordHash, Department, Position, Email, YearlyGoal)
+                            VALUES (?,?,?,?,?,?,?)
+                        """, (
+                            fn, login, generate_password_hash(pwd),
+                            (row.get("Department") or row.get("department") or "").strip() or None,
+                            (row.get("Position") or row.get("position") or "").strip() or None,
+                            (row.get("Email") or row.get("email") or "").strip() or None,
+                            yg_i,
+                        ))
+                        ok += 1
+                    except Exception:
+                        err += 1
+                flash(f"Импорт: {ok} қосылды, {err} қате/өткізілді", "success" if ok else "warning")
+                log_audit("admin", session["user_id"], "teacher_import_csv", f"ok={ok},err={err}")
         return redirect(url_for("admin_teachers"))
 
     teachers = db.fetch_all("SELECT * FROM vw_TeacherRating ORDER BY FullName")
-    return render_template("admin_teachers.html", teachers=teachers)
+    inactive = db.fetch_all("""
+        SELECT t.*,
+               COALESCE(
+                   (SELECT MAX(a.SubmittedAt) FROM Achievements a WHERE a.TeacherId = t.TeacherId),
+                   t.CreatedAt
+               ) AS LastActivity
+        FROM Teachers t
+        WHERE COALESCE(
+            (SELECT MAX(a.SubmittedAt) FROM Achievements a WHERE a.TeacherId = t.TeacherId),
+            t.CreatedAt
+        ) < NOW() - INTERVAL '30 days'
+        ORDER BY LastActivity ASC
+    """)
+    return render_template(
+        "admin_teachers.html",
+        teachers=teachers,
+        inactive=inactive,
+        academic_year=current_academic_year(),
+        is_superadmin=admin_role_level() >= ADMIN_ROLE_LEVEL["superadmin"],
+    )
+
+
+@app.route("/admin/teachers/template.csv")
+@login_required(role="admin", min_admin_role="admin")
+def admin_teachers_csv_template():
+    from flask import Response
+    body = "FullName;Login;Password;Department;Position;Email;YearlyGoal\n"
+    body += "Айгүл Қасымова;aigul2;teacher123;Информатика;Оқытушы;aigul2@college.kz;30\n"
+    return Response(body, mimetype="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": "attachment; filename=oqytushylar_shablon.csv"})
+
+
+@app.route("/admin/audit")
+@login_required(role="admin", min_admin_role="moderator")
+def admin_audit():
+    schema.ensure_schema()
+    logs = db.fetch_all("""
+        SELECT * FROM AuditLog ORDER BY CreatedAt DESC LIMIT 500
+    """)
+    return render_template("admin_audit.html", logs=logs)
+
+
+@app.route("/admin/analytics")
+@login_required(role="admin", min_admin_role="moderator")
+def admin_analytics():
+    schema.ensure_schema()
+    logins_day = db.fetch_all("""
+        SELECT DATE(CreatedAt) AS D, COUNT(*) AS Cnt
+        FROM AuditLog
+        WHERE UserType = 'teacher' AND Action = 'login'
+          AND CreatedAt >= NOW() - INTERVAL '30 days'
+        GROUP BY DATE(CreatedAt) ORDER BY D
+    """)
+    ach_day = db.fetch_all("""
+        SELECT DATE(SubmittedAt) AS D, COUNT(*) AS Cnt
+        FROM Achievements
+        WHERE SubmittedAt >= NOW() - INTERVAL '30 days'
+        GROUP BY DATE(SubmittedAt) ORDER BY D
+    """)
+    logins_week = db.fetch_one("""
+        SELECT COUNT(*) AS Cnt FROM AuditLog
+        WHERE UserType = 'teacher' AND Action = 'login'
+          AND CreatedAt >= NOW() - INTERVAL '7 days'
+    """)
+    ach_week = db.fetch_one("""
+        SELECT COUNT(*) AS Cnt FROM Achievements
+        WHERE SubmittedAt >= NOW() - INTERVAL '7 days'
+    """)
+    dept_ranking = db.fetch_all("""
+        SELECT Department,
+               SUM(TotalScore) AS DeptScore,
+               COUNT(*) AS TeacherCount
+        FROM Teachers
+        WHERE Department IS NOT NULL AND TRIM(Department) <> ''
+          AND COALESCE(IsBlocked, FALSE) = FALSE
+        GROUP BY Department
+        ORDER BY DeptScore DESC
+    """)
+    return render_template(
+        "admin_analytics.html",
+        logins_day=logins_day,
+        ach_day=ach_day,
+        logins_week=logins_week or {},
+        ach_week=ach_week or {},
+        dept_ranking=dept_ranking,
+    )
+
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+@login_required(role="admin", min_admin_role="admin")
+def admin_settings():
+    schema.ensure_schema()
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "save_scores":
+            types = db.fetch_all("SELECT TypeId FROM AchievementTypes")
+            for t in types:
+                tid = t["TypeId"]
+                val = request.form.get(f"score_{tid}", "").strip()
+                if val.isdigit():
+                    db.execute(
+                        "UPDATE AchievementTypes SET Score = ? WHERE TypeId = ?",
+                        (int(val), tid),
+                    )
+            flash("Ұпайлар сақталды", "success")
+            log_audit("admin", session["user_id"], "scores_update", "")
+        elif action == "save_announcement":
+            schema.set_setting("announcement_active", "1" if request.form.get("active") else "0")
+            schema.set_setting("announcement_title", request.form.get("title", "").strip())
+            schema.set_setting("announcement_body", request.form.get("body", "").strip())
+            flash("Хабар жарияланды", "success")
+        elif action == "test_email":
+            to = request.form.get("test_to", "").strip()
+            if mailer.send_email(to, "Ustaz Rating тест", "SMTP дұрыс жұмыс істейді ✅"):
+                flash("Email жіберілді", "success")
+            else:
+                flash("Email жіберілмеді — SMTP баптауларын тексеріңіз", "error")
+        elif action == "dept_goal":
+            dept = request.form.get("department", "").strip()
+            year = request.form.get("academic_year", "").strip() or current_academic_year()
+            goal = request.form.get("dept_goal", "").strip()
+            if dept and goal.isdigit():
+                db.execute("""
+                    INSERT INTO DepartmentGoals (Department, AcademicYear, YearlyGoal)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (Department, AcademicYear) DO UPDATE
+                    SET YearlyGoal = EXCLUDED.YearlyGoal
+                """, (dept, year, int(goal)))
+                flash("Кафедра мақсаты қосылды", "success")
+        return redirect(url_for("admin_settings"))
+
+    types = db.fetch_all("SELECT * FROM AchievementTypes ORDER BY Category, Score DESC")
+    dept_goals = db.fetch_all(
+        "SELECT * FROM DepartmentGoals ORDER BY AcademicYear DESC, Department"
+    )
+    departments = [
+        (r.get("Department") or r.get("department") or "")
+        for r in db.fetch_all(
+            "SELECT DISTINCT Department FROM Teachers "
+            "WHERE Department IS NOT NULL AND TRIM(Department) <> '' ORDER BY Department"
+        )
+    ]
+    return render_template(
+        "admin_settings.html",
+        types=types,
+        announcement={
+            "active": schema.get_setting("announcement_active") == "1",
+            "title": schema.get_setting("announcement_title"),
+            "body": schema.get_setting("announcement_body"),
+        },
+        mail_enabled=mailer.is_enabled(),
+        dept_goals=dept_goals,
+        departments=departments,
+        academic_year=current_academic_year(),
+    )
+
+
+@app.route("/admin/roles", methods=["GET", "POST"])
+@login_required(role="admin", min_admin_role="superadmin")
+def admin_roles():
+    schema.ensure_schema()
+    if request.method == "POST":
+        admin_id = int(request.form.get("admin_id"))
+        role = request.form.get("role", "admin").lower()
+        if role not in ADMIN_ROLE_LEVEL:
+            role = "admin"
+        db.execute('UPDATE Admins SET Role = ? WHERE AdminId = ?', (role, admin_id))
+        flash("Рөл жаңартылды", "success")
+        log_audit("admin", session["user_id"], "role_change", f"{admin_id}={role}")
+        return redirect(url_for("admin_roles"))
+    admins = db.fetch_all('SELECT AdminId, Username, FullName, Email, Role FROM Admins ORDER BY Username')
+    return render_template("admin_roles.html", admins=admins, roles=ADMIN_ROLE_LEVEL.keys())
+
+
+@app.route("/admin/teacher-of-year", methods=["GET", "POST"])
+@login_required(role="admin", min_admin_role="moderator")
+def admin_teacher_of_year():
+    schema.ensure_schema()
+    year = request.args.get("year", "").strip() or request.form.get("academic_year", "").strip() or current_academic_year()
+    if request.method == "POST" and request.form.get("action") == "publish":
+        tid = request.form.get("teacher_id", "").strip()
+        if tid.isdigit():
+            schema.set_setting(f"teacher_of_year_{year}", tid)
+            t = db.fetch_one("SELECT FullName FROM Teachers WHERE TeacherId = ?", (int(tid),))
+            flash(f"{year} жыл оқытушысы жарияланды: {t['FullName'] if t else tid}", "success")
+            log_audit("admin", session["user_id"], "teacher_of_year", f"{year}={tid}")
+        return redirect(url_for("admin_teacher_of_year", year=year))
+
+    ranking = db.fetch_all("""
+        SELECT t.TeacherId, t.FullName, t.Department, t.PhotoPath,
+               COALESCE(SUM(a.Score), 0) AS YearScore,
+               COUNT(a.AchievementId) AS YearAchCount
+        FROM Teachers t
+        LEFT JOIN Achievements a ON a.TeacherId = t.TeacherId
+            AND a.IsApproved = TRUE AND a.AcademicYear = ?
+        GROUP BY t.TeacherId, t.FullName, t.Department, t.PhotoPath
+        ORDER BY YearScore DESC, t.FullName ASC
+    """, (year,))
+
+    published_id = schema.get_setting(f"teacher_of_year_{year}", "")
+    published = None
+    if published_id.isdigit():
+        published = db.fetch_one("SELECT * FROM Teachers WHERE TeacherId = ?", (int(published_id),))
+
+    years = db.fetch_all("""
+        SELECT DISTINCT AcademicYear AS Y FROM Achievements
+        WHERE AcademicYear IS NOT NULL AND TRIM(AcademicYear) <> ''
+        ORDER BY Y DESC
+    """)
+    year_list = [r.get("Y") or r.get("y") for r in years if r.get("Y") or r.get("y")]
+    if current_academic_year() not in year_list:
+        year_list.insert(0, current_academic_year())
+
+    return render_template(
+        "admin_teacher_of_year.html",
+        ranking=ranking,
+        academic_year=year,
+        years=year_list,
+        published=published,
+        published_id=published_id,
+    )
 
 
 # =========================================================================
@@ -731,14 +1116,10 @@ def handle_db_error(e):
         msg = str(e)
         hint = (
             "PostgreSQL (Railway): <code>DATABASE_URL</code> орнатылғанын тексеріңіз, "
-            "содан Bash-та <code>python setup_db.py</code>. "
-            "<code>DEPLOY_RAILWAY.md</code> қараңыз."
+            "содан Bash-та <code>python setup_db.py</code> орындаңыз."
         )
         if "does not exist" in msg.lower() or "relation" in msg.lower():
-            hint = (
-                "Кестелер жоқ. Railway Bash: <code>python setup_db.py</code> "
-                "(<code>DEPLOY_RAILWAY.md</code>)"
-            )
+            hint = "Кестелер жоқ. Railway Bash: <code>python setup_db.py</code> орындаңыз."
         elif "connection" in msg.lower() or "could not connect" in msg.lower():
             hint = (
                 "PostgreSQL-ге қосылу сәтсіз. Railway → PostgreSQL plugin, "
@@ -762,6 +1143,7 @@ if __name__ == "__main__":
         check_db_connection()
         print("✅ PostgreSQL байланысы сәтті")
         try:
+            schema.ensure_schema()
             ensure_admin_email_column()
             ensure_seed_passwords()
             print("✅ Әдепкі парольдер орнатылды")

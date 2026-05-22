@@ -2,11 +2,38 @@
     <a href="{{ url_for('admin_panel') }}"
        class="admin-subnav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">
         <i class="fa-solid fa-list-check"></i>
-        <span data-i18n="admin.tabAchievements">Жетістіктер</span>
+        <span>Жетістіктер</span>
     </a>
     <a href="{{ url_for('admin_teachers') }}"
        class="admin-subnav-link {% if request.endpoint == 'admin_teachers' %}active{% endif %}">
         <i class="fa-solid fa-users-gear"></i>
-        <span data-i18n="admin.tabTeachers">Оқытушыларды басқару</span>
+        <span>Оқытушылар</span>
     </a>
+    <a href="{{ url_for('admin_teacher_of_year') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_teacher_of_year' %}active{% endif %}">
+        <i class="fa-solid fa-award"></i>
+        <span>Жыл оқытушысы</span>
+    </a>
+    <a href="{{ url_for('admin_analytics') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Белсенділік</span>
+    </a>
+    <a href="{{ url_for('admin_audit') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_audit' %}active{% endif %}">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>Журнал</span>
+    </a>
+    <a href="{{ url_for('admin_settings') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_settings' %}active{% endif %}">
+        <i class="fa-solid fa-sliders"></i>
+        <span>Баптаулар</span>
+    </a>
+    {% if current_user.admin_role == 'superadmin' %}
+    <a href="{{ url_for('admin_roles') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_roles' %}active{% endif %}">
+        <i class="fa-solid fa-user-shield"></i>
+        <span>Рөлдер</span>
+    </a>
+    {% endif %}
 </nav>
