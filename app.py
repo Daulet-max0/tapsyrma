@@ -1137,10 +1137,10 @@ def handle_db_error(e):
         msg = str(e)
         hint = (
             "PostgreSQL (Railway): <code>DATABASE_URL</code> орнатылғанын тексеріңіз, "
-            "содан Bash-та <code>python setup_db.py</code> орындаңыз."
+            "содан Bash-та <code>python migrate_db.py</code> орындаңыз."
         )
         if "does not exist" in msg.lower() or "relation" in msg.lower():
-            hint = "Кестелер жоқ. Railway Bash: <code>python setup_db.py</code> орындаңыз."
+            hint = "Кестелер жоқ. Railway Shell: <code>python migrate_db.py</code> орындаңыз."
         elif "connection" in msg.lower() or "could not connect" in msg.lower():
             hint = (
                 "PostgreSQL-ге қосылу сәтсіз. Railway → PostgreSQL plugin, "
@@ -1172,11 +1172,11 @@ if __name__ == "__main__":
             print("   Оқытушы: <email> / teacher123")
         except Exception as e:
             print(f"⚠️  Миграция/парольдер: {e}")
-            print("   python setup_db.py орындаңыз.")
+            print("   python migrate_db.py орындаңыз.")
     except Exception as e:
         print(f"⚠️  PostgreSQL қосылмады: {e}")
-        print("   Railway: PostgreSQL + DATABASE_URL, содан setup_db.py")
-        print("   → DEPLOY_RAILWAY.md")
+        print("   Railway: PostgreSQL + DATABASE_URL → .env.example қараңыз")
+        print("   Shell: python migrate_db.py")
         print(f"   URL: {config.DATABASE_URL.split('@')[-1] if '@' in config.DATABASE_URL else '...'}")
 
     print("=" * 60)

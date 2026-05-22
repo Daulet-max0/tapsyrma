@@ -32,7 +32,9 @@ def _table_exists(table: str) -> bool:
 def ensure_schema(force: bool = False) -> None:
     global _MIGRATIONS_DONE
     if _MIGRATIONS_DONE and not force:
-        return
+        if _table_exists("SiteSettings") and _table_exists("DepartmentGoals"):
+            return
+        _MIGRATIONS_DONE = False
 
     # Жаңа кестелер алдымен (кейінгі сұраулар сәтсіз болмауы үшін)
     if not _table_exists("SiteSettings"):
