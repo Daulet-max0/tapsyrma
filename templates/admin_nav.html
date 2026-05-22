@@ -1,0 +1,12 @@
+<nav class="admin-subnav" aria-label="Админ бөлімдері">
+    <a href="{{ url_for('admin_panel') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">
+        <i class="fa-solid fa-list-check"></i>
+        <span data-i18n="admin.tabAchievements">Жетістіктер</span>
+    </a>
+    <a href="{{ url_for('admin_teachers') }}"
+       class="admin-subnav-link {% if request.endpoint == 'admin_teachers' %}active{% endif %}">
+        <i class="fa-solid fa-users-gear"></i>
+        <span data-i18n="admin.tabTeachers">Оқытушыларды басқару</span>
+    </a>
+</nav>

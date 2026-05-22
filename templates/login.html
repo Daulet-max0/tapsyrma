@@ -6,7 +6,7 @@
 <div class="login-container">
     <div class="login-box">
         <div class="login-logo">
-            <div class="logo-icon">P</div>
+            <div class="logo-icon">U</div>
             <h1 data-i18n="login.title">Жүйеге кіру</h1>
             <p class="subtitle" data-i18n="login.subtitle">Жеке кабинетке кіру үшін деректерді енгізіңіз</p>
         </div>
@@ -39,13 +39,9 @@
                 <span data-i18n="login.submit">Кіру</span>
             </button>
 
-            <div class="login-footer">
-                <span data-i18n="login.noAccount">Аккаунтыңыз жоқ па?</span>
-                <a href="{{ url_for('register_page') }}" class="register-link">
-                    <i class="fa-solid fa-user-plus"></i>
-                    <span data-i18n="login.registerLink">Тіркелу</span>
-                </a>
-            </div>
+            <p class="login-footer-note" data-i18n="login.registerClosed">
+                Жаңа аккаунтты админ ғана қосады (Админ → Оқытушыларды басқару).
+            </p>
         </form>
     </div>
 </div>

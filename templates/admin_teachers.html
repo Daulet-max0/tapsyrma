@@ -6,8 +6,10 @@
 <div class="container">
     <div class="hero" style="padding: 30px 0 20px;">
         <h1><i class="fa-solid fa-users-gear"></i> <span data-i18n="adminTeachers.title">Оқытушыларды басқару</span></h1>
-        <p data-i18n="adminTeachers.subtitle">Жаңа оқытушы қосу, өшіру және тізімді көру</p>
+        <p data-i18n="adminTeachers.subtitle">Жаңа оқытушы қосу, өшіру және тізімді көру (тек админ)</p>
     </div>
+
+    {% include 'admin_nav.html' %}
 
     <div class="grid-2">
         <div class="panel">
@@ -27,7 +29,7 @@
                     <input type="text" name="password" class="input-field" required placeholder="teacher123">
                 </div>
                 <div class="form-group">
-                    <label data-i18n="adminTeachers.department">Бөлім</label>
+                    <label data-i18n="adminTeachers.department">Мамандығы</label>
                     <input type="text" name="department" class="input-field" placeholder="Қолөнер бөлімі" data-i18n-placeholder="adminTeachers.deptPlaceholder">
                 </div>
                 <div class="form-group">

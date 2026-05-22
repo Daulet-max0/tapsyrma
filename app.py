@@ -284,90 +284,10 @@ def login_submit():
     return redirect(url_for("login_page"))
 
 
-@app.route("/register", methods=["GET"])
+@app.route("/register", methods=["GET", "POST"])
 def register_page():
-    """Оқытушы өзін-өзі тіркейтін бет."""
-    if "user_id" in session:
-        return redirect(url_for("index"))
-    return render_template("register.html")
-
-
-@app.route("/register", methods=["POST"])
-def register_submit():
-    """Жаңа оқытушы аккаунтын email арқылы жасау."""
-    import re
-
-    full_name = request.form.get("full_name", "").strip()
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "")
-    password_confirm = request.form.get("password_confirm", "")
-    department = request.form.get("department", "").strip()
-    position = request.form.get("position", "").strip()
-
-    if not full_name or len(full_name) < 3:
-        flash("Аты-жөніңізді дұрыс жазыңыз (кем дегенде 3 таңба)", "error")
-        return redirect(url_for("register_page"))
-
-    if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
-        flash("Жарамды email енгізіңіз", "error")
-        return redirect(url_for("register_page"))
-
-    if not password or len(password) < 6:
-        flash("Құпия сөз кем дегенде 6 таңбадан тұруы керек", "error")
-        return redirect(url_for("register_page"))
-
-    if password != password_confirm:
-        flash("Құпия сөздер сәйкес келмейді", "error")
-        return redirect(url_for("register_page"))
-
-    # Бірегейлікті тексеру (email)
-    email_taken = db.fetch_one(
-        "SELECT TeacherId FROM Teachers WHERE LOWER(Email) = ?", (email,)
-    )
-    if email_taken:
-        flash("Бұл email бұрыннан тіркелген", "error")
-        return redirect(url_for("register_page"))
-
-    admin_email_taken = db.fetch_one(
-        "SELECT AdminId FROM Admins WHERE LOWER(Email) = ?", (email,)
-    )
-    if admin_email_taken:
-        flash("Бұл email бос емес", "error")
-        return redirect(url_for("register_page"))
-
-    # Email-ден бірегей Login автогенерацияланады
-    login = generate_unique_login_from_email(email)
-
-    try:
-        db.execute("""
-            INSERT INTO Teachers (FullName, Login, PasswordHash, Department, Position, Email, TotalScore)
-            VALUES (?, ?, ?, ?, ?, ?, 0)
-        """, (
-            full_name,
-            login,
-            generate_password_hash(password),
-            department or None,
-            position or None,
-            email,
-        ))
-    except Exception as exc:
-        flash(f"Тіркелу кезінде қате: {exc}", "error")
-        return redirect(url_for("register_page"))
-
-    # Жаңа тіркелген оқытушыны бірден жүйеге кіргіземіз
-    new_user = db.fetch_one(
-        "SELECT * FROM Teachers WHERE LOWER(Email) = ?", (email,)
-    )
-    if new_user:
-        session.permanent = True
-        session["user_id"] = new_user["TeacherId"]
-        session["user_name"] = new_user["FullName"]
-        session["role"] = "teacher"
-        log_audit("teacher", new_user["TeacherId"], "register", email)
-        flash("Аккаунтыңыз сәтті жасалды! Қош келдіңіз 🎉", "success")
-        return redirect(url_for("teacher_profile"))
-
-    flash("Тіркелу сәтті, енді жүйеге кіріңіз", "success")
+    """Жария тіркелу жабық — оқытушыларды тек админ қосады."""
+    flash("Жария тіркелу жабық. Аккаунтты админ «Оқытушыларды басқару» бөлімінен қосады.", "info")
     return redirect(url_for("login_page"))
 
 
