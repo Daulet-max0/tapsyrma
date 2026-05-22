@@ -29,10 +29,31 @@ def _table_exists(table: str) -> bool:
     return bool(row)
 
 
-def ensure_schema() -> None:
+def ensure_schema(force: bool = False) -> None:
     global _MIGRATIONS_DONE
-    if _MIGRATIONS_DONE:
+    if _MIGRATIONS_DONE and not force:
         return
+
+    # Жаңа кестелер алдымен (кейінгі сұраулар сәтсіз болмауы үшін)
+    if not _table_exists("SiteSettings"):
+        db.execute("""
+            CREATE TABLE "SiteSettings" (
+                "SettingKey"   VARCHAR(100) PRIMARY KEY,
+                "SettingValue" TEXT,
+                "UpdatedAt"    TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        """)
+
+    if not _table_exists("DepartmentGoals"):
+        db.execute("""
+            CREATE TABLE "DepartmentGoals" (
+                "GoalId"       SERIAL PRIMARY KEY,
+                "Department"   VARCHAR(200) NOT NULL,
+                "AcademicYear" VARCHAR(20) NOT NULL,
+                "YearlyGoal"   INT NOT NULL DEFAULT 0,
+                UNIQUE ("Department", "AcademicYear")
+            )
+        """)
 
     if not _column_exists("Teachers", "IsBlocked"):
         db.execute('ALTER TABLE "Teachers" ADD COLUMN "IsBlocked" BOOLEAN NOT NULL DEFAULT FALSE')
@@ -56,26 +77,6 @@ def ensure_schema() -> None:
 
     if not _column_exists("Achievements", "AcademicYear"):
         db.execute('ALTER TABLE "Achievements" ADD COLUMN "AcademicYear" VARCHAR(20)')
-
-    if not _table_exists("SiteSettings"):
-        db.execute("""
-            CREATE TABLE "SiteSettings" (
-                "SettingKey"   VARCHAR(100) PRIMARY KEY,
-                "SettingValue" TEXT,
-                "UpdatedAt"    TIMESTAMP NOT NULL DEFAULT NOW()
-            )
-        """)
-
-    if not _table_exists("DepartmentGoals"):
-        db.execute("""
-            CREATE TABLE "DepartmentGoals" (
-                "GoalId"       SERIAL PRIMARY KEY,
-                "Department"   VARCHAR(200) NOT NULL,
-                "AcademicYear" VARCHAR(20) NOT NULL,
-                "YearlyGoal"   INT NOT NULL DEFAULT 0,
-                UNIQUE ("Department", "AcademicYear")
-            )
-        """)
 
     if _column_exists("Teachers", "IsBlocked"):
         db.execute('DROP VIEW IF EXISTS "vw_TeacherRating"')

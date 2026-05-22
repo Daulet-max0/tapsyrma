@@ -37,6 +37,18 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=60)
 os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
 
 
+@app.before_request
+def _ensure_db_schema_once():
+    """Gunicorn/Railway: жаңа кестелер әр сұраудан бұрын дайын болуы керек."""
+    if app.config.get("_SCHEMA_READY"):
+        return
+    try:
+        schema.ensure_schema()
+        app.config["_SCHEMA_READY"] = True
+    except Exception:
+        pass
+
+
 # =========================================================================
 # Алғашқы іске қосу — test пайдаланушылар үшін парольдерді орнату
 # =========================================================================
@@ -789,9 +801,18 @@ def admin_settings():
         return redirect(url_for("admin_settings"))
 
     types = db.fetch_all("SELECT * FROM AchievementTypes ORDER BY Category, Score DESC")
-    dept_goals = db.fetch_all(
-        "SELECT * FROM DepartmentGoals ORDER BY AcademicYear DESC, Department"
-    )
+    try:
+        dept_goals = db.fetch_all(
+            "SELECT * FROM DepartmentGoals ORDER BY AcademicYear DESC, Department"
+        )
+    except Exception:
+        schema.ensure_schema()
+        try:
+            dept_goals = db.fetch_all(
+                "SELECT * FROM DepartmentGoals ORDER BY AcademicYear DESC, Department"
+            )
+        except Exception:
+            dept_goals = []
     departments = [
         (r.get("Department") or r.get("department") or "")
         for r in db.fetch_all(
