@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0a0a">
 
-    <title>{% block title %}PedStat — Оқытушылар рейтингі{% endblock %} | Түркістан колледжі</title>
-    <meta name="description" content="PedStat — Түркістан жоғары көп салалы қол өнер колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін және рейтингін есептейтін ресми платформа.">
-    <meta name="keywords" content="PedStat, педагог статистикасы, Түркістан колледжі, оқытушылар рейтингі, ғылыми жетістіктер">
+    <title>{% block title %}Ustaz Rating — Оқытушылар рейтингі{% endblock %} | Түркістан колледжі</title>
+    <meta name="description" content="Ustaz Rating — Түркістан жоғары көп салалы қол өнер колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін және рейтингін есептейтін ресми платформа.">
+    <meta name="keywords" content="Ustaz Rating, ustaz, Түркістан колледжі, оқытушылар рейтингі, ғылыми жетістіктер">
     <meta name="author" content="Түркістан жоғары көп салалы қол өнер колледжі">
 
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{% block og_title %}PedStat — Оқытушылар рейтингі{% endblock %}">
-    <meta property="og:description" content="PedStat — Түркістан колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін платформа.">
-    <meta property="og:site_name" content="PedStat">
+    <meta property="og:title" content="{% block og_title %}Ustaz Rating — Оқытушылар рейтингі{% endblock %}">
+    <meta property="og:description" content="Ustaz Rating — Түркістан колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін платформа.">
+    <meta property="og:site_name" content="Ustaz Rating">
     <meta property="og:locale" content="kk_KZ">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="PedStat — Оқытушылар рейтингі">
-    <meta name="twitter:description" content="PedStat — Түркістан колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін платформа.">
+    <meta name="twitter:title" content="Ustaz Rating — Оқытушылар рейтингі">
+    <meta name="twitter:description" content="Ustaz Rating — Түркістан колледжі оқытушыларының ғылыми-әдістемелік жетістіктерін тіркейтін платформа.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,9 +27,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    {# Zyra-стильдік лайм фавикон — қара фон + 'P' әрпі (PedStat) #}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0a'/><text x='50%25' y='50%25' dy='.35em' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='62' fill='%23d4ff00'>P</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230a0a0a'/><text x='50%25' y='50%25' dy='.35em' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='110' fill='%23d4ff00'>P</text></svg>">
+    {# Ustaz Rating фавикон #}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0a'/><text x='50%25' y='50%25' dy='.35em' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='52' fill='%23d4ff00'>UR</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230a0a0a'/><text x='50%25' y='50%25' dy='.35em' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='800' font-size='90' fill='%23d4ff00'>UR</text></svg>">
 
     {% block head_extra %}{% endblock %}
 </head>
@@ -42,9 +42,9 @@
 
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="logo">
-            <div class="logo-icon">P</div>
+            <div class="logo-icon">U</div>
             <div class="logo-text">
-                PedStat
+                <span data-i18n="logo.name">Ustaz Rating</span>
                 <small data-i18n="logo.subtitle">Түркістан жоғары көп салалы қол өнер колледжі</small>
             </div>
         </a>
@@ -58,7 +58,6 @@
             {% endif %}
             {% if current_user.role == 'admin' %}
                 <li><a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}"><i class="fa-solid fa-shield-halved"></i> <span data-i18n="nav.admin">Админ</span></a></li>
-                <li><a href="{{ url_for('admin_teachers') }}" class="nav-link"><i class="fa-solid fa-users"></i> <span data-i18n="nav.teachers">Оқытушылар</span></a></li>
             {% endif %}
         </ul>
 

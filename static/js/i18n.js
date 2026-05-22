@@ -1,7 +1,8 @@
-/* PedStat — тілдік сөздік: қазақ / орыс / ағылшын */
+/* Ustaz Rating — тілдік сөздік: қазақ / орыс / ағылшын */
 
 window.I18N = {
     kk: {
+        'logo.name': 'Ustaz Rating',
         'nav.home': 'Басты бет',
         'nav.results': 'Қорытынды',
         'nav.dashboard': 'Статистика',
@@ -68,7 +69,7 @@ window.I18N = {
         'register.subtitle': 'Оқытушы ретінде тіркеліңіз',
         'register.fullName': 'Аты-жөні *',
         'register.email': 'Email *',
-        'register.department': 'Кафедра',
+        'register.department': 'Мамандығы',
         'register.position': 'Қызметі',
         'register.password': 'Құпия сөз *',
         'register.passwordConfirm': 'Құпия сөзді қайталаңыз *',
@@ -169,14 +170,14 @@ window.I18N = {
         'footer.stats': 'Статистика',
         'footer.login': 'Кіру',
 
-        'title.home': 'PedStat — Оқытушылар рейтингі | Түркістан колледжі',
-        'title.login': 'Кіру — PedStat',
-        'title.register': 'Тіркелу — PedStat',
-        'title.profile': 'Менің профилім — PedStat',
-        'title.admin': 'Админ панелі — PedStat',
-        'title.adminTeachers': 'Оқытушыларды басқару — PedStat',
-        'title.dashboard': 'Статистика — PedStat',
-        'title.teacherProfile': 'Профиль — PedStat',
+        'title.home': 'Ustaz Rating — Оқытушылар рейтингі | Түркістан колледжі',
+        'title.login': 'Кіру — Ustaz Rating',
+        'title.register': 'Тіркелу — Ustaz Rating',
+        'title.profile': 'Менің профилім — Ustaz Rating',
+        'title.admin': 'Админ панелі — Ustaz Rating',
+        'title.adminTeachers': 'Оқытушыларды басқару — Ustaz Rating',
+        'title.dashboard': 'Статистика — Ustaz Rating',
+        'title.teacherProfile': 'Профиль — Ustaz Rating',
 
         'logo.subtitle': 'Түркістан жоғары көп салалы қол өнер колледжі',
         'btn.themeTitle': 'Тақырыпты ауыстыру',
@@ -242,6 +243,7 @@ window.I18N = {
     },
 
     ru: {
+        'logo.name': 'Ustaz Rating',
         'nav.home': 'Главная',
         'nav.results': 'Итоги',
         'nav.dashboard': 'Статистика',
@@ -308,7 +310,7 @@ window.I18N = {
         'register.subtitle': 'Зарегистрируйтесь как преподаватель',
         'register.fullName': 'ФИО *',
         'register.email': 'Email *',
-        'register.department': 'Кафедра',
+        'register.department': 'Специальность',
         'register.position': 'Должность',
         'register.password': 'Пароль *',
         'register.passwordConfirm': 'Повторите пароль *',
@@ -409,14 +411,14 @@ window.I18N = {
         'footer.stats': 'Статистика',
         'footer.login': 'Вход',
 
-        'title.home': 'PedStat — Рейтинг преподавателей | Туркестанский колледж',
-        'title.login': 'Вход — PedStat',
-        'title.register': 'Регистрация — PedStat',
-        'title.profile': 'Мой профиль — PedStat',
-        'title.admin': 'Панель администратора — PedStat',
-        'title.adminTeachers': 'Управление преподавателями — PedStat',
-        'title.dashboard': 'Статистика — PedStat',
-        'title.teacherProfile': 'Профиль — PedStat',
+        'title.home': 'Ustaz Rating — Рейтинг преподавателей | Туркестанский колледж',
+        'title.login': 'Вход — Ustaz Rating',
+        'title.register': 'Регистрация — Ustaz Rating',
+        'title.profile': 'Мой профиль — Ustaz Rating',
+        'title.admin': 'Панель администратора — Ustaz Rating',
+        'title.adminTeachers': 'Управление преподавателями — Ustaz Rating',
+        'title.dashboard': 'Статистика — Ustaz Rating',
+        'title.teacherProfile': 'Профиль — Ustaz Rating',
 
         'logo.subtitle': 'Туркестанский высший многопрофильный колледж прикладного искусства',
         'btn.themeTitle': 'Сменить тему',
@@ -482,6 +484,7 @@ window.I18N = {
     },
 
     en: {
+        'logo.name': 'Ustaz Rating',
         'nav.home': 'Home',
         'nav.results': 'Results',
         'nav.dashboard': 'Dashboard',
@@ -548,7 +551,7 @@ window.I18N = {
         'register.subtitle': 'Register as a teacher',
         'register.fullName': 'Full Name *',
         'register.email': 'Email *',
-        'register.department': 'Department',
+        'register.department': 'Specialty',
         'register.position': 'Position',
         'register.password': 'Password *',
         'register.passwordConfirm': 'Confirm Password *',
@@ -649,14 +652,14 @@ window.I18N = {
         'footer.stats': 'Dashboard',
         'footer.login': 'Login',
 
-        'title.home': 'PedStat — Teacher Rating | Turkestan College',
-        'title.login': 'Sign In — PedStat',
-        'title.register': 'Sign Up — PedStat',
-        'title.profile': 'My Profile — PedStat',
-        'title.admin': 'Admin Panel — PedStat',
-        'title.adminTeachers': 'Manage Teachers — PedStat',
-        'title.dashboard': 'Dashboard — PedStat',
-        'title.teacherProfile': 'Profile — PedStat',
+        'title.home': 'Ustaz Rating — Teacher Rating | Turkestan College',
+        'title.login': 'Sign In — Ustaz Rating',
+        'title.register': 'Sign Up — Ustaz Rating',
+        'title.profile': 'My Profile — Ustaz Rating',
+        'title.admin': 'Admin Panel — Ustaz Rating',
+        'title.adminTeachers': 'Manage Teachers — Ustaz Rating',
+        'title.dashboard': 'Dashboard — Ustaz Rating',
+        'title.teacherProfile': 'Profile — Ustaz Rating',
 
         'logo.subtitle': 'Turkestan Higher Multidisciplinary College of Applied Arts',
         'btn.themeTitle': 'Toggle theme',
